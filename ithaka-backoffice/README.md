@@ -123,7 +123,7 @@ curl "http://localhost:8000/api/stats"
 5. Reportes avanzados y exportación
 6. Integración completa con el chatbot
 
-## Estructura del Proyecto
+## Estructura inicial del Proyecto
 
 ```
 ithaka-backoffice/
@@ -138,3 +138,79 @@ ithaka-backoffice/
 ## Contacto
 
 Centro de Emprendimiento e Innovación - Universidad Católica del Uruguay
+
+
+## Estructura recomendada
+
+ithaka-backoffice/
+│
+├── app/
+│   ├── __init__.py
+│   │
+│   ├── core/                    # Configuración central
+│   │   ├── __init__.py
+│   │   ├── config.py            # Variables de entorno, configuración DB
+│   │   └── security.py          # Funciones de autenticación/JWT
+│   │
+│   ├── db/                      # Base de datos
+│   │   ├── __init__.py
+│   │   ├── database.py          # Conexión a PostgreSQL (SQLAlchemy)
+│   │   └── session.py           # Dependency para obtener sesiones DB
+│   │
+│   ├── models/                  # Modelos SQLAlchemy (tablas DB)
+│   │   ├── __init__.py
+│   │   ├── usuario.py
+│   │   ├── emprendedor.py
+│   │   ├── caso.py
+│   │   ├── convocatoria.py
+│   │   ├── programa.py
+│   │   ├── apoyo.py
+│   │   ├── asignacion.py
+│   │   ├── nota.py
+│   │   ├── auditoria.py
+│   │   └── catalogo_estados.py
+│   │
+│   ├── schemas/                 # Schemas Pydantic (validación API)
+│   │   ├── __init__.py
+│   │   ├── usuario.py
+│   │   ├── emprendedor.py
+│   │   ├── caso.py
+│   │   ├── convocatoria.py
+│   │   ├── programa.py
+│   │   └── ...
+│   │
+│   ├── api/                     # Endpoints
+│   │   ├── __init__.py
+│   │   ├── deps.py              # Dependencies compartidas
+│   │   └── v1/
+│   │       ├── __init__.py
+│   │       ├── api.py           # Agrupa todos los routers
+│   │       └── endpoints/
+│   │           ├── __init__.py
+│   │           ├── auth.py      # Login, logout
+│   │           ├── usuarios.py
+│   │           ├── emprendedores.py
+│   │           ├── casos.py
+│   │           ├── convocatorias.py
+│   │           ├── programas.py
+│   │           └── ...
+│   │
+│   └── services/                # Lógica de negocio (opcional pero recomendado)
+│       ├── __init__.py
+│       ├── caso_service.py
+│       ├── auditoria_service.py
+│       └── ...
+│
+├── alembic/                     # Migraciones de base de datos
+│   └── versions/
+│
+├── tests/                       # Tests
+│   ├── __init__.py
+│   └── test_api/
+│
+├── .env                         # Variables de entorno (NO subir a git)
+├── .env.example                 # Ejemplo de variables
+├── alembic.ini                  # Configuración de migraciones
+├── requirements.txt
+├── main.py                      # Punto de entrada
+└── README.md
