@@ -13,12 +13,19 @@ Así todos los endpoints quedan bajo /api/v1/
 from fastapi import APIRouter
 
 # Importar los routers de cada endpoint
-# A medida que creen más archivos en /endpoints, impórtenlos aquí
-from app.api.v1.endpoints import emprendedores
-# from app.api.v1.endpoints import casos
-# from app.api.v1.endpoints import usuarios
-# from app.api.v1.endpoints import convocatorias
-# etc...
+from app.api.v1.endpoints import (
+    emprendedores,
+    rol,
+    usuario,
+    convocatoria,
+    catalogo_estados,
+    caso,
+    programa,
+    apoyo,
+    asignacion,
+    nota,
+    auditoria
+)
 
 # Router principal que agrupa todo
 api_router = APIRouter()
@@ -28,26 +35,81 @@ api_router = APIRouter()
 # ============================================================================
 
 # Emprendedores
-# Todos los endpoints de emprendedores.py quedarán bajo /api/v1/emprendedores
 api_router.include_router(
     emprendedores.router,
-    prefix="/emprendedores",  # Prefijo de la URL
-    tags=["emprendedores"]    # Tag para la documentación (Swagger)
+    prefix="/emprendedores",
+    tags=["emprendedores"]
 )
 
-# Cuando creen más endpoints, agreguenlos aquí:
-# ----------------------------------------------------------------------------
-# api_router.include_router(
-#     casos.router,
-#     prefix="/casos",
-#     tags=["casos"]
-# )
-#
-# api_router.include_router(
-#     usuarios.router,
-#     prefix="/usuarios",
-#     tags=["usuarios"]
-# )
+# Roles
+api_router.include_router(
+    rol.router,
+    prefix="/roles",
+    tags=["roles"]
+)
+
+# Usuarios
+api_router.include_router(
+    usuario.router,
+    prefix="/usuarios",
+    tags=["usuarios"]
+)
+
+# Convocatorias
+api_router.include_router(
+    convocatoria.router,
+    prefix="/convocatorias",
+    tags=["convocatorias"]
+)
+
+# Catálogo de Estados
+api_router.include_router(
+    catalogo_estados.router,
+    prefix="/estados",
+    tags=["estados"]
+)
+
+# Casos
+api_router.include_router(
+    caso.router,
+    prefix="/casos",
+    tags=["casos"]
+)
+
+# Programas
+api_router.include_router(
+    programa.router,
+    prefix="/programas",
+    tags=["programas"]
+)
+
+# Apoyos
+api_router.include_router(
+    apoyo.router,
+    prefix="/apoyos",
+    tags=["apoyos"]
+)
+
+# Asignaciones
+api_router.include_router(
+    asignacion.router,
+    prefix="/asignaciones",
+    tags=["asignaciones"]
+)
+
+# Notas
+api_router.include_router(
+    nota.router,
+    prefix="/notas",
+    tags=["notas"]
+)
+
+# Auditoría (solo lectura)
+api_router.include_router(
+    auditoria.router,
+    prefix="/auditoria",
+    tags=["auditoria"]
+)
 #
 # api_router.include_router(
 #     convocatorias.router,

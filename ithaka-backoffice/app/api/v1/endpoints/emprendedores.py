@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 # Imports de tu aplicación
 from app.api.deps import get_db
 from app.models import Emprendedor
-# from app.schemas.emprendedor import EmprendedorCreate, EmprendedorUpdate, EmprendedorResponse
+from app.schemas.emprendedor import EmprendedorCreate, EmprendedorUpdate, EmprendedorResponse
 
 # ============================================================================
 # CREAR EL ROUTER
@@ -97,7 +97,7 @@ def obtener_emprendedor(
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def crear_emprendedor(
-    # emprendedor_data: EmprendedorCreate,  # Datos validados con Pydantic
+    emprendedor_data: EmprendedorCreate,
     db: Session = Depends(get_db)
 ):
     """
@@ -116,38 +116,17 @@ def crear_emprendedor(
     Returns:
     - Emprendedor creado con su ID
     """
-    # POR AHORA (sin schemas):
-    # Devuelve un ejemplo de lo que haría
-    return {
-        "mensaje": "Crear schema EmprendedorCreate en app/schemas/emprendedor.py",
-        "ejemplo": {
-            "id_emprendedor": 1,
-            "nombre": "Juan Pérez",
-            "email": "juan@example.com"
-        }
-    }
-    
-    # CON SCHEMAS (implementar después):
-    # # Crear objeto del modelo
-    # nuevo_emprendedor = Emprendedor(
-    #     nombre=emprendedor_data.nombre,
-    #     email=emprendedor_data.email,
-    #     telefono=emprendedor_data.telefono,
-    #     vinculo_institucional=emprendedor_data.vinculo_institucional
-    # )
-    # 
-    # # Guardar en la base de datos
-    # db.add(nuevo_emprendedor)
-    # db.commit()
-    # db.refresh(nuevo_emprendedor)  # Obtiene el ID generado
-    # 
-    # return nuevo_emprendedor
+    nuevo_emprendedor = Emprendedor(**emprendedor_data.model_dump())
+    db.add(nuevo_emprendedor)
+    db.commit()
+    db.refresh(nuevo_emprendedor)
+    return nuevo_emprendedor
 
 
 @router.put("/{emprendedor_id}", status_code=status.HTTP_200_OK)
 def actualizar_emprendedor(
     emprendedor_id: int,
-    # emprendedor_data: EmprendedorUpdate,
+    emprendedor_data: EmprendedorUpdate,
     db: Session = Depends(get_db)
 ):
     """
@@ -161,7 +140,6 @@ def actualizar_emprendedor(
         "telefono": "+598 99 999 999"
     }
     """
-    # Buscar el emprendedor
     emprendedor = db.query(Emprendedor).filter(
         Emprendedor.id_emprendedor == emprendedor_id
     ).first()
@@ -172,18 +150,13 @@ def actualizar_emprendedor(
             detail=f"Emprendedor con ID {emprendedor_id} no encontrado"
         )
     
-    # POR AHORA:
-    return {"mensaje": "Implementar con schemas"}
+    update_data = emprendedor_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(emprendedor, field, value)
     
-    # CON SCHEMAS:
-    # # Actualizar solo los campos que vinieron en el request
-    # update_data = emprendedor_data.dict(exclude_unset=True)
-    # for field, value in update_data.items():
-    #     setattr(emprendedor, field, value)
-    # 
-    # db.commit()
-    # db.refresh(emprendedor)
-    # return emprendedor
+    db.commit()
+    db.refresh(emprendedor)
+    return emprendedor
 
 
 @router.delete("/{emprendedor_id}", status_code=status.HTTP_204_NO_CONTENT)

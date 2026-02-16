@@ -1,24 +1,3 @@
-"""
-TEMPLATE PARA CREAR NUEVOS ENDPOINTS
-=====================================
-
-Este es un template que pueden copiar para crear nuevos archivos de endpoints.
-
-PASOS PARA USAR ESTE TEMPLATE:
-1. Copiar este archivo
-2. Renombrarlo (ej: casos.py, usuarios.py, convocatorias.py)
-3. Buscar y reemplazar "RECURSO" por tu recurso (ej: "Caso", "Usuario")
-4. Buscar y reemplazar "recurso" por tu recurso en minúscula
-5. Importar el router en app/api/v1/api.py
-6. Crear los schemas correspondientes en app/schemas/
-
-EJEMPLO:
-    Si vas a crear endpoints para "Caso":
-    - RECURSO → Caso
-    - recurso → caso
-    - recursos → casos
-"""
-
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -170,38 +149,3 @@ def obtener_relacionados(
     """
     return {"mensaje": "Implementar lógica personalizada"}
 
-
-# ============================================================================
-# TIPS IMPORTANTES
-# ============================================================================
-#
-# 1. STATUS CODES comunes:
-#    - 200 OK: Operación exitosa
-#    - 201 Created: Recurso creado
-#    - 204 No Content: Eliminación exitosa (sin body)
-#    - 400 Bad Request: Datos inválidos
-#    - 401 Unauthorized: No autenticado
-#    - 403 Forbidden: No autorizado (sin permisos)
-#    - 404 Not Found: Recurso no existe
-#    - 500 Internal Server Error: Error del servidor
-#
-# 2. PARÁMETROS:
-#    - Path params: /{recurso_id} → def func(recurso_id: int)
-#    - Query params: ?skip=0&limit=10 → def func(skip: int = 0, limit: int = 10)
-#    - Body: JSON en el request → def func(data: Schema)
-#
-# 3. DEPENDENCIES:
-#    - db: Session = Depends(get_db) → Siempre para acceder a la DB
-#    - current_user = Depends(get_current_user) → Para autenticación
-#    - admin = Depends(require_admin) → Para autorización
-#
-# 4. BÚSQUEDAS CON FILTROS:
-#    db.query(Model).filter(
-#        Model.campo1 == valor1,
-#        Model.campo2.like(f"%{busqueda}%")
-#    ).all()
-#
-# 5. JOINS:
-#    db.query(Caso).join(Emprendedor).filter(
-#        Emprendedor.email == "test@example.com"
-#    ).all()
