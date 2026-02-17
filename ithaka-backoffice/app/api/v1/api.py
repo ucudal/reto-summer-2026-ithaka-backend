@@ -15,16 +15,8 @@ from fastapi import APIRouter
 # Importar los routers de cada endpoint
 from app.api.v1.endpoints import (
     emprendedores,
-    rol,
-    usuario,
-    convocatoria,
     catalogo_estados,
-    caso,
-    programa,
-    apoyo,
-    asignacion,
-    nota,
-    auditoria
+    caso
 )
 
 # Router principal que agrupa todo
@@ -41,27 +33,6 @@ api_router.include_router(
     tags=["emprendedores"]
 )
 
-# Roles
-api_router.include_router(
-    rol.router,
-    prefix="/roles",
-    tags=["roles"]
-)
-
-# Usuarios
-api_router.include_router(
-    usuario.router,
-    prefix="/usuarios",
-    tags=["usuarios"]
-)
-
-# Convocatorias
-api_router.include_router(
-    convocatoria.router,
-    prefix="/convocatorias",
-    tags=["convocatorias"]
-)
-
 # Catálogo de Estados
 api_router.include_router(
     catalogo_estados.router,
@@ -76,40 +47,7 @@ api_router.include_router(
     tags=["casos"]
 )
 
-# Programas
-api_router.include_router(
-    programa.router,
-    prefix="/programas",
-    tags=["programas"]
-)
 
-# Apoyos
-api_router.include_router(
-    apoyo.router,
-    prefix="/apoyos",
-    tags=["apoyos"]
-)
-
-# Asignaciones
-api_router.include_router(
-    asignacion.router,
-    prefix="/asignaciones",
-    tags=["asignaciones"]
-)
-
-# Notas
-api_router.include_router(
-    nota.router,
-    prefix="/notas",
-    tags=["notas"]
-)
-
-# Auditoría (solo lectura)
-api_router.include_router(
-    auditoria.router,
-    prefix="/auditoria",
-    tags=["auditoria"]
-)
 #
 # api_router.include_router(
 #     convocatorias.router,

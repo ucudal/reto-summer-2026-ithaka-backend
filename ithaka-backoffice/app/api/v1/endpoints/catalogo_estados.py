@@ -1,9 +1,3 @@
-"""
-ENDPOINTS: CATALOGO_ESTADOS
-============================
-Operaciones CRUD para estados de casos.
-"""
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -55,7 +49,6 @@ def crear_estado(
     estado_data: CatalogoEstadosCreate,
     db: Session = Depends(get_db)
 ):
-    """Crear un nuevo estado"""
     nuevo_estado = CatalogoEstados(**estado_data.model_dump())
     db.add(nuevo_estado)
     db.commit()
@@ -70,7 +63,6 @@ def actualizar_estado(
     estado_data: CatalogoEstadosUpdate,
     db: Session = Depends(get_db)
 ):
-    """Actualizar un estado"""
     estado = db.query(CatalogoEstados).filter(
         CatalogoEstados.id_estado == estado_id
     ).first()
@@ -95,7 +87,6 @@ def eliminar_estado(
     estado_id: int,
     db: Session = Depends(get_db)
 ):
-    """Eliminar un estado"""
     estado = db.query(CatalogoEstados).filter(
         CatalogoEstados.id_estado == estado_id
     ).first()
