@@ -7,7 +7,7 @@ Esta guía explica cómo importar tu base de datos existente al contenedor de Po
 - Docker Desktop instalado y corriendo
 - Archivo de dump SQL (ej: `ithaka_backoffice.sql`)
 
-## Pasos
+## Pasosbackoffice
 
 ### 1. Levantar solo la base de datos
 
@@ -25,7 +25,7 @@ docker-compose logs db
 
 ### 2. Importar el dump SQL
 
-Ejecuta este comando desde la carpeta `ithaka-backoffice`:
+Ejecuta este comando desde la carpeta `ithaka-`:
 
 ```powershell
 Get-Content ithaka_backoffice.sql | docker exec -i ithaka_postgres psql -U postgres -d ithaka_db

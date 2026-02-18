@@ -1,29 +1,23 @@
-"""
-Schemas PROGRAMA
-----------------
-TODO: Implementar usando TEMPLATE.py como guía
+from pydantic import BaseModel, Field
+from typing import Optional
 
-Campos según SQL:
-- id_programa (solo en Response)
-- nombre
-- activo
-"""
 
-# from pydantic import BaseModel, Field
-# from typing import Optional
-# 
-# class ProgramaBase(BaseModel):
-#     # ... campos comunes
-#     pass
-# 
-# class ProgramaCreate(ProgramaBase):
-#     pass
-# 
-# class ProgramaUpdate(BaseModel):
-#     # ... campos opcionales
-#     pass
-# 
-# class ProgramaResponse(ProgramaBase):
-#     id_programa: int
-#     class Config:
-#         from_attributes = True
+class ProgramaBase(BaseModel):
+    nombre: str = Field(..., max_length=150, description="Nombre del programa")
+    activo: bool = Field(True, description="Indica si el programa está activo")
+
+
+class ProgramaCreate(ProgramaBase):
+    pass
+
+
+class ProgramaUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, max_length=150)
+    activo: Optional[bool] = None
+
+
+class ProgramaResponse(ProgramaBase):
+    id_programa: int = Field(..., description="ID único del programa")
+
+    class Config:
+        from_attributes = True

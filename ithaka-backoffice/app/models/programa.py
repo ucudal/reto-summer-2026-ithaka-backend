@@ -1,18 +1,14 @@
-"""
-Modelo PROGRAMA
----------------
-TODO: Implementar usando TEMPLATE.py como guía
+from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy.orm import relationship
 
-Tabla: programa
-Columnas según SQL:
-- id_programa SERIAL PRIMARY KEY
-- nombre VARCHAR(150) NOT NULL
-- activo BOOLEAN DEFAULT TRUE
-"""
+from app.db.database import Base
 
-# from sqlalchemy import Column, Integer, String, Boolean
-# from app.db.database import Base
-# 
-# class Programa(Base):
-#     __tablename__ = "programa"
-#     # ... agregar columnas
+
+class Programa(Base):
+    __tablename__ = "programa"
+
+    id_programa = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(150), nullable=False)
+    activo = Column(Boolean, nullable=False, default=True)
+
+    apoyos = relationship("Apoyo", backref="programa", lazy="selectin")
