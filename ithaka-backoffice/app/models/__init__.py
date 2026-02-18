@@ -17,6 +17,8 @@ para que pueda crear las relaciones correctamente.
 # Modelos base (sin dependencias)
 from app.models.emprendedor import Emprendedor
 from app.models.catalogo_estados import CatalogoEstados
+from app.models.convocatoria import Convocatoria
+from app.models.programa import Programa
 
 # Modelos con foreign keys
 from app.models.caso import Caso
@@ -31,4 +33,6 @@ __all__ = [
     "Caso",
     "Nota",
     "Auditoria",
+    "Convocatoria",
+    "Programa",
 ]

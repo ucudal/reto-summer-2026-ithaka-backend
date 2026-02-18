@@ -19,6 +19,8 @@ from app.api.v1.endpoints import (
     catalogo_estados,
     emprendedores,
     nota,
+    convocatoria,
+    programa,
 )
 
 # Router principal que agrupa todo
@@ -63,19 +65,19 @@ api_router.include_router(
     tags=["auditoria"]
 )
 
-#
-# api_router.include_router(
-#     convocatorias.router,
-#     prefix="/convocatorias",
-#     tags=["convocatorias"]
-# )
-#
-# api_router.include_router(
-#     programas.router,
-#     prefix="/programas",
-#     tags=["programas"]
-# )
-#
+
+api_router.include_router(
+     convocatorias.router,
+     prefix="/convocatorias",
+     tags=["convocatorias"]
+ )
+
+ api_router.include_router(
+     programas.router,
+     prefix="/programas",
+     tags=["programas"]
+ )
+
 # api_router.include_router(
 #     auth.router,
 #     prefix="/auth",
