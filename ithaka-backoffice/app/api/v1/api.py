@@ -14,9 +14,11 @@ from fastapi import APIRouter
 
 # Importar los routers de cada endpoint
 from app.api.v1.endpoints import (
-    emprendedores,
+    auditoria,
+    caso,
     catalogo_estados,
-    caso
+    emprendedores,
+    nota,
 )
 
 # Router principal que agrupa todo
@@ -47,6 +49,19 @@ api_router.include_router(
     tags=["casos"]
 )
 
+# Notas
+api_router.include_router(
+    nota.router,
+    prefix="/notas",
+    tags=["notas"]
+)
+
+# Auditoría
+api_router.include_router(
+    auditoria.router,
+    prefix="/auditoria",
+    tags=["auditoria"]
+)
 
 #
 # api_router.include_router(

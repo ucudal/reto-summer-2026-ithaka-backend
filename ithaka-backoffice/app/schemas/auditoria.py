@@ -12,24 +12,52 @@ Campos según SQL:
 - id_usuario
 - id_caso
 """
+from datetime import datetime
+from typing import Optional
 
-# from pydantic import BaseModel, Field
-# from datetime import datetime
-# from typing import Optional
-# 
-# class AuditoriaBase(BaseModel):
-#     # ... campos comunes
-#     pass
-# 
-# class AuditoriaCreate(AuditoriaBase):
-#     pass
-# 
-# class AuditoriaUpdate(BaseModel):
-#     # ... campos opcionales
-#     pass
-# 
-# class AuditoriaResponse(AuditoriaBase):
-#     id_auditoria: int
-#     timestamp: datetime
-#     class Config:
-#         from_attributes = True
+from pydantic import BaseModel, Field
+
+
+class AuditoriaBase(BaseModel):
+    accion: str = Field(
+        ...,
+        min_length=1,
+        max_length=150,
+        description="Acción registrada en auditoría"
+    )
+    valor_anterior: Optional[str] = Field(
+        None,
+        description="Valor previo al cambio"
+    )
+    valor_nuevo: Optional[str] = Field(
+        None,
+        description="Valor posterior al cambio"
+    )
+    id_usuario: int = Field(
+        ...,
+        description="ID del usuario que realizó la acción"
+    )
+    id_caso: int = Field(
+        ...,
+        description="ID del caso sobre el que se realizó la acción"
+    )
+
+
+class AuditoriaCreate(AuditoriaBase):
+    pass
+
+
+class AuditoriaUpdate(BaseModel):
+    accion: Optional[str] = Field(None, min_length=1, max_length=150)
+    valor_anterior: Optional[str] = None
+    valor_nuevo: Optional[str] = None
+    id_usuario: Optional[int] = None
+    id_caso: Optional[int] = None
+
+
+class AuditoriaResponse(AuditoriaBase):
+    id_auditoria: int = Field(..., description="ID único de auditoría")
+    timestamp: datetime = Field(..., description="Fecha/hora del registro")
+
+    class Config:
+        from_attributes = True

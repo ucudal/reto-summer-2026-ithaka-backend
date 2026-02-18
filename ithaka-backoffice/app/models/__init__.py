@@ -6,7 +6,7 @@ Este archivo importa todos los modelos para que sean más fáciles de usar.
 En lugar de hacer:
     from app.models.usuario import Usuario
     from app.models.caso import Caso
-    
+
 Puedes hacer:
     from app.models import Usuario, Caso
 
@@ -19,8 +19,9 @@ from app.models.emprendedor import Emprendedor
 from app.models.catalogo_estados import CatalogoEstados
 
 # Modelos con foreign keys
-
 from app.models.caso import Caso
+from app.models.nota import Nota
+from app.models.auditoria import Auditoria
 
 
 # Esto permite hacer: from app.models import Usuario, Caso, etc.
@@ -28,4 +29,6 @@ __all__ = [
     "Emprendedor",
     "CatalogoEstados",
     "Caso",
+    "Nota",
+    "Auditoria",
 ]

@@ -13,6 +13,7 @@ Uso en otros archivos:
 """
 
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import List
 
 
@@ -55,12 +56,11 @@ class Settings(BaseSettings):
     # ========== CORS ==========
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
     
-    class Config:
-        """
-        Configuración de Pydantic Settings
-        """
-        env_file = ".env"
-        case_sensitive = True
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra='ignore'  # Ignora campos extra del .env que no estén definidos
+    )
 
 
 # Instancia global de settings

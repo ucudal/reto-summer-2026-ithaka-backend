@@ -13,7 +13,6 @@ from app.schemas.emprendedor import (
     EmprendedorListResponse
 )
 
-
 # Catálogo de Estados
 from app.schemas.catalogo_estados import (
     CatalogoEstadosBase,
@@ -28,6 +27,22 @@ from app.schemas.caso import (
     CasoCreate,
     CasoUpdate,
     CasoResponse
+)
+
+# Nota
+from app.schemas.nota import (
+    NotaBase,
+    NotaCreate,
+    NotaUpdate,
+    NotaResponse
+)
+
+# Auditoría
+from app.schemas.auditoria import (
+    AuditoriaBase,
+    AuditoriaCreate,
+    AuditoriaUpdate,
+    AuditoriaResponse
 )
 
 __all__ = [
@@ -47,6 +62,14 @@ __all__ = [
     "CasoCreate",
     "CasoUpdate",
     "CasoResponse",
-
+    # Nota
+    "NotaBase",
+    "NotaCreate",
+    "NotaUpdate",
+    "NotaResponse",
+    # Auditoría
+    "AuditoriaBase",
+    "AuditoriaCreate",
+    "AuditoriaUpdate",
+    "AuditoriaResponse",
 ]
-
