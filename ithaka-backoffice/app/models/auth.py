@@ -3,13 +3,14 @@ from sqlalchemy.orm import Session
 from jose import jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
+import os
 
 from database import get_db
 from models import Usuario
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
-SECRET_KEY = "clave_secreta"
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
