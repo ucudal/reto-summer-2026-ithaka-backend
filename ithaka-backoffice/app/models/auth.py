@@ -53,3 +53,5 @@ def login(email: str, password: str, db: Session = Depends(get_db)):
             "rol": usuario.rol.nombre
         }
     }
+
+"""..."""
