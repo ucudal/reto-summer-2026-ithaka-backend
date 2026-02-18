@@ -1,18 +1,14 @@
-"""
-Modelo CONVOCATORIA
--------------------
-TODO: Implementar usando TEMPLATE.py como guía
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.orm import relationship
 
-Tabla: convocatoria
-Columnas según SQL:
-- id_convocatoria SERIAL PRIMARY KEY
-- nombre VARCHAR(150) NOT NULL
-- fecha_cierre TIMESTAMP
-"""
+from app.db.database import Base
 
-# from sqlalchemy import Column, Integer, String, DateTime
-# from app.db.database import Base
-# 
-# class Convocatoria(Base):
-#     __tablename__ = "convocatoria"
-#     # ... agregar columnas
+
+class Convocatoria(Base):
+    __tablename__ = "convocatoria"
+
+    id_convocatoria = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(150), nullable=False)
+    fecha_cierre = Column(DateTime, nullable=True)
+
+    casos = relationship("Caso", backref="convocatoria", lazy="selectin")
