@@ -4,7 +4,7 @@ Endpoints AUDITORIA
 Registro de eventos para trazabilidad del sistema.
 
 Endpoints expuestos:
-- GET /api/v1/auditoria - Listar registros (con filtros)
+- GET /api/v1/auditoria - Listar todos los registros
 - GET /api/v1/auditoria/{id} - Obtener un registro
 - GET /api/v1/auditoria/staff/{id_usuario} - Acciones de un miembro del staff
 
@@ -17,40 +17,25 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.models.auditoria import Auditoria
+from app.schemas.auditoria import AuditoriaResponse
 
 router = APIRouter()
 
 
-@router.get("/", status_code=status.HTTP_200_OK)
+@router.get("/", response_model=list[AuditoriaResponse], status_code=status.HTTP_200_OK)
 def listar_auditoria(
-    skip: int = 0,
-    limit: int = 100,
-    id_caso: Optional[int] = None,
-    id_usuario: Optional[int] = None,
-    accion: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """
-    Listar registros de auditoría con paginación y filtros opcionales.
+    Listar todos los registros de auditoría.
 
-    URL: GET /api/v1/auditoria?skip=0&limit=100&id_caso=1&id_usuario=2
+    URL: GET /api/v1/auditoria
     """
-    query = db.query(Auditoria)
-
-    if id_caso is not None:
-        query = query.filter(Auditoria.id_caso == id_caso)
-
-    if id_usuario is not None:
-        query = query.filter(Auditoria.id_usuario == id_usuario)
-
-    if accion:
-        query = query.filter(Auditoria.accion.ilike(f"%{accion}%"))
-
-    auditorias = query.order_by(Auditoria.timestamp.desc()).offset(skip).limit(limit).all()
+    auditorias = db.query(Auditoria).order_by(Auditoria.id_auditoria.asc()).all()
     return auditorias
 
 
-@router.get("/staff/{id_usuario}", status_code=status.HTTP_200_OK)
+@router.get("/staff/{id_usuario}", response_model=list[AuditoriaResponse], status_code=status.HTTP_200_OK)
 def listar_acciones_por_staff(
     id_usuario: int,
     skip: int = 0,
@@ -76,7 +61,7 @@ def listar_acciones_por_staff(
     return acciones
 
 
-@router.get("/{auditoria_id}", status_code=status.HTTP_200_OK)
+@router.get("/{auditoria_id}", response_model=AuditoriaResponse, status_code=status.HTTP_200_OK)
 def obtener_auditoria(
     auditoria_id: int,
     db: Session = Depends(get_db)

@@ -1,7 +1,7 @@
 """
 Endpoints NOTA
 --------------
-TODO: Implementar usando TEMPLATE.py como guía
+TODO: Implementar usando TEMPLATE.py como guia
 
 Endpoints a crear:
 - GET /api/v1/notas - Listar todas
@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models.nota import Nota
 from app.schemas.nota import NotaCreate, NotaUpdate
+from app.services.auditoria_service import registrar_auditoria_caso
 
 router = APIRouter()
 
@@ -31,7 +32,7 @@ def listar_notas(
     db: Session = Depends(get_db)
 ):
     """
-    Listar notas con paginación y filtros opcionales.
+    Listar notas con paginacion y filtros opcionales.
 
     URL: GET /api/v1/notas?skip=0&limit=100&id_caso=1&id_usuario=2
     """
@@ -80,6 +81,21 @@ def crear_nota(
     """
     nueva_nota = Nota(**nota_data.model_dump())
     db.add(nueva_nota)
+    db.flush()
+
+    registrar_auditoria_caso(
+        db=db,
+        accion="nota_creada",
+        id_usuario=nueva_nota.id_usuario,
+        id_caso=nueva_nota.id_caso,
+        valor_nuevo={
+            "id_nota": nueva_nota.id_nota,
+            "contenido": nueva_nota.contenido,
+            "id_usuario": nueva_nota.id_usuario,
+            "id_caso": nueva_nota.id_caso,
+        },
+    )
+
     db.commit()
     db.refresh(nueva_nota)
 
@@ -106,8 +122,24 @@ def actualizar_nota(
         )
 
     update_data = nota_data.model_dump(exclude_unset=True)
+    if not update_data:
+        return nota
+
+    valor_anterior = {field: getattr(nota, field) for field in update_data.keys()}
+
     for field, value in update_data.items():
         setattr(nota, field, value)
+
+    valor_nuevo = {field: getattr(nota, field) for field in update_data.keys()}
+
+    registrar_auditoria_caso(
+        db=db,
+        accion="nota_actualizada",
+        id_usuario=nota.id_usuario,
+        id_caso=nota.id_caso,
+        valor_anterior=valor_anterior,
+        valor_nuevo=valor_nuevo,
+    )
 
     db.commit()
     db.refresh(nota)
@@ -133,7 +165,25 @@ def eliminar_nota(
             detail=f"Nota con ID {nota_id} no encontrada"
         )
 
+    valor_anterior = {
+        "id_nota": nota.id_nota,
+        "contenido": nota.contenido,
+        "id_usuario": nota.id_usuario,
+        "id_caso": nota.id_caso,
+    }
+    id_usuario = nota.id_usuario
+    id_caso = nota.id_caso
+
     db.delete(nota)
+
+    registrar_auditoria_caso(
+        db=db,
+        accion="nota_eliminada",
+        id_usuario=id_usuario,
+        id_caso=id_caso,
+        valor_anterior=valor_anterior,
+    )
+
     db.commit()
 
     return None
