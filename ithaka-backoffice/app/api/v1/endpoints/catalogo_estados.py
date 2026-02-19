@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.models.catalogo_estados import CatalogoEstados
+from app.models.usuario import Usuario
 from app.schemas.catalogo_estados import CatalogoEstadosCreate, CatalogoEstadosUpdate, CatalogoEstadosResponse
+from app.core.security import require_role
 
 router = APIRouter()
 
@@ -47,7 +49,8 @@ def obtener_estado(
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=CatalogoEstadosResponse)
 def crear_estado(
     estado_data: CatalogoEstadosCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["admin"]))
 ):
     nuevo_estado = CatalogoEstados(**estado_data.model_dump())
     db.add(nuevo_estado)
@@ -61,7 +64,8 @@ def crear_estado(
 def actualizar_estado(
     estado_id: int,
     estado_data: CatalogoEstadosUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["admin"]))
 ):
     estado = db.query(CatalogoEstados).filter(
         CatalogoEstados.id_estado == estado_id
@@ -85,7 +89,8 @@ def actualizar_estado(
 @router.delete("/{estado_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_estado(
     estado_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["admin"]))
 ):
     estado = db.query(CatalogoEstados).filter(
         CatalogoEstados.id_estado == estado_id

@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models import Caso
 from app.models import CatalogoEstados
+from app.models.usuario import Usuario
 from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse
+from app.core.security import get_current_user, require_role
 
 router = APIRouter()
 
@@ -21,7 +23,8 @@ def listar_casos(
     tipo_caso: str = None,
     nombre_estado: str = None,
     id_emprendedor: int = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
 ):
     """
     Listar todos los casos
@@ -47,7 +50,8 @@ def listar_casos(
 @router.get("/{caso_id}")
 def obtener_caso(
     caso_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
 ):
     """
     Obtener un caso específico por ID
@@ -71,7 +75,8 @@ def obtener_caso(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def crear_caso(
     caso_data: CasoCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
 ):
     """
     Crear un nuevo caso
@@ -98,7 +103,8 @@ def crear_caso(
 def actualizar_caso(
     caso_id: int,
     caso_data: CasoUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
 ):
     """
     Actualizar un recurso existente
@@ -125,7 +131,8 @@ def actualizar_caso(
 @router.delete("/{caso_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_caso(
     caso_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["admin"]))
 ):
     """
     Eliminar un caso
@@ -152,7 +159,8 @@ def cambiar_estado_caso(
     caso_id: int,
     nombre_estado: str,  # "En Revisión", "Aprobado", etc
     tipo_caso: str,      # "Postulacion" o "Proyecto"
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
 ):
     """
     Cambiar el estado de un caso

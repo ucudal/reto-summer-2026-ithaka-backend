@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 # Imports de tu aplicación
 from app.api.deps import get_db
 from app.models import Emprendedor
+from app.models.usuario import Usuario
 from app.schemas.emprendedor import EmprendedorCreate, EmprendedorUpdate, EmprendedorResponse
+from app.core.security import get_current_user, require_role
 
 
 router = APIRouter()
@@ -26,7 +28,8 @@ def listar_emprendedores(
 @router.get("/{emprendedor_id}", status_code=status.HTTP_200_OK)
 def obtener_emprendedor(
     emprendedor_id: int,  
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
 ):
   
     emprendedor = db.query(Emprendedor).filter(
@@ -59,7 +62,8 @@ def crear_emprendedor(
 def actualizar_emprendedor(
     emprendedor_id: int,
     emprendedor_data: EmprendedorUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
 ):
    
     emprendedor = db.query(Emprendedor).filter(
@@ -84,7 +88,8 @@ def actualizar_emprendedor(
 @router.delete("/{emprendedor_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_emprendedor(
     emprendedor_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["admin"]))
 ):
    
     emprendedor = db.query(Emprendedor).filter(
@@ -106,7 +111,8 @@ def eliminar_emprendedor(
 @router.get("/{emprendedor_id}/casos")
 def obtener_casos_emprendedor(
     emprendedor_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
 ):
   
     emprendedor = db.query(Emprendedor).filter(

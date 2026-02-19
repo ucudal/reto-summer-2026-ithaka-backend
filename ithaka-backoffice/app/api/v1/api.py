@@ -16,7 +16,8 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     emprendedores,
     catalogo_estados,
-    caso
+    caso,
+    auth
 )
 
 # Router principal que agrupa todo
@@ -47,7 +48,15 @@ api_router.include_router(
     tags=["casos"]
 )
 
+# Autenticación
+api_router.include_router(
+    auth.router,
+    prefix="/auth",
+    tags=["autenticación"]
+)
 
+
+# TODO: Descomentar cuando se creen estos routers
 #
 # api_router.include_router(
 #     convocatorias.router,
@@ -59,12 +68,6 @@ api_router.include_router(
 #     programas.router,
 #     prefix="/programas",
 #     tags=["programas"]
-# )
-#
-# api_router.include_router(
-#     auth.router,
-#     prefix="/auth",
-#     tags=["autenticación"]
 # )
 
 # ============================================================================
