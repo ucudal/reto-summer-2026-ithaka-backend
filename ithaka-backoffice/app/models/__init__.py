@@ -19,6 +19,7 @@ from app.models.emprendedor import Emprendedor
 from app.models.catalogo_estados import CatalogoEstados
 from app.models.convocatoria import Convocatoria
 from app.models.programa import Programa
+from app.models.apoyo import Apoyo
 
 # Modelos con foreign keys
 from app.models.caso import Caso
@@ -35,4 +36,5 @@ __all__ = [
     "Auditoria",
     "Convocatoria",
     "Programa",
+    "Apoyo",
 ]

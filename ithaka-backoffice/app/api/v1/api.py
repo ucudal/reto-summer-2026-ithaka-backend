@@ -65,18 +65,19 @@ api_router.include_router(
     tags=["auditoria"]
 )
 
-
+# Convocatorias
 api_router.include_router(
-     convocatorias.router,
-     prefix="/convocatorias",
-     tags=["convocatorias"]
- )
+    convocatoria.router,
+    prefix="/convocatorias",
+    tags=["convocatorias"]
+)
 
- api_router.include_router(
-     programas.router,
-     prefix="/programas",
-     tags=["programas"]
- )
+# Programas
+api_router.include_router(
+    programa.router,
+    prefix="/programas",
+    tags=["programas"]
+)
 
 # api_router.include_router(
 #     auth.router,
