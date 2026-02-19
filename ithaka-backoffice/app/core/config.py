@@ -13,6 +13,7 @@ Uso en otros archivos:
 """
 
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from typing import List
 
 
@@ -54,6 +55,17 @@ class Settings(BaseSettings):
     
     # ========== CORS ==========
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """
+        Parsea BACKEND_CORS_ORIGINS desde una cadena separada por comas
+        o desde una lista
+        """
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",")]
+        return v
     
     class Config:
         """
