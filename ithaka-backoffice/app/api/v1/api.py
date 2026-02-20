@@ -21,6 +21,8 @@ from app.api.v1.endpoints import (
     nota,
     convocatoria,
     programa,
+    usuario,
+    auth
 )
 
 # Router principal que agrupa todo
@@ -77,6 +79,20 @@ api_router.include_router(
     programa.router,
     prefix="/programas",
     tags=["programas"]
+)
+
+# Autenticación
+api_router.include_router(
+    auth.router,
+    prefix="/auth",
+    tags=["autenticación"]
+)
+
+# Usuarios
+api_router.include_router(
+    usuario.router,
+    prefix="/usuarios",
+    tags=["usuarios"]
 )
 
 # api_router.include_router(

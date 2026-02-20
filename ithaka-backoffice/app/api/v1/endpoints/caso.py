@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models import Caso
 from app.models import CatalogoEstados
+from app.models.usuario import Usuario
 from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse
+from app.core.security import get_current_user, require_role
 
 router = APIRouter()
 
@@ -22,6 +24,7 @@ def listar_casos(
     nombre_estado: str = None,
     id_emprendedor: int = None,
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
 ):
     """
     Listar todos los casos
@@ -48,6 +51,7 @@ def listar_casos(
 def obtener_caso(
     caso_id: int,
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
 ):
     """
     Obtener un caso específico por ID
@@ -72,6 +76,7 @@ def obtener_caso(
 def crear_caso(
     caso_data: CasoCreate,
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
 ):
     """
     Crear un nuevo caso
@@ -99,6 +104,7 @@ def actualizar_caso(
     caso_id: int,
     caso_data: CasoUpdate,
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
 ):
     """
     Actualizar un recurso existente
@@ -126,6 +132,7 @@ def actualizar_caso(
 def eliminar_caso(
     caso_id: int,
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
 ):
     """
     Eliminar un caso
@@ -153,6 +160,7 @@ def cambiar_estado_caso(
     nombre_estado: str,  # "En Revisión", "Aprobado", etc
     tipo_caso: str,      # "Postulacion" o "Proyecto"
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
 ):
     """
     Cambiar el estado de un caso

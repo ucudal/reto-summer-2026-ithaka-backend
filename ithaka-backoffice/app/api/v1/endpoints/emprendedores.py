@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 # Imports de tu aplicación
 from app.api.deps import get_db
 from app.models import Emprendedor
+from app.models.usuario import Usuario
 from app.schemas.emprendedor import EmprendedorCreate, EmprendedorUpdate, EmprendedorResponse
+from app.core.security import get_current_user, require_role
 
 
 router = APIRouter()
@@ -27,6 +29,7 @@ def listar_emprendedores(
 def obtener_emprendedor(
     emprendedor_id: int,  
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
 ):
   
     emprendedor = db.query(Emprendedor).filter(
@@ -60,6 +63,7 @@ def actualizar_emprendedor(
     emprendedor_id: int,
     emprendedor_data: EmprendedorUpdate,
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
 ):
    
     emprendedor = db.query(Emprendedor).filter(
@@ -85,6 +89,7 @@ def actualizar_emprendedor(
 def eliminar_emprendedor(
     emprendedor_id: int,
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
 ):
    
     emprendedor = db.query(Emprendedor).filter(
@@ -107,6 +112,7 @@ def eliminar_emprendedor(
 def obtener_casos_emprendedor(
     emprendedor_id: int,
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
 ):
   
     emprendedor = db.query(Emprendedor).filter(
