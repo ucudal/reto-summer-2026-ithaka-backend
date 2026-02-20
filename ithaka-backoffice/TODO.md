@@ -2,22 +2,31 @@
 
 Este documento lista todos los archivos que faltan implementar en el proyecto.
 
-## ✅ COMPLETADOS (Tu parte)
+## ✅ COMPLETADOS
+
+### Tu parte (Emprendedor, Caso, Estados):
 - [x] `app/models/emprendedor.py`
 - [x] `app/models/caso.py`
 - [x] `app/models/catalogo_estados.py`
 - [x] `app/schemas/emprendedor.py`
 - [x] `app/schemas/caso.py`
 - [x] `app/schemas/catalogo_estados.py`
-- [x] `app/api/v1/endpoints/emprendedores.py`
-- [x] `app/api/v1/endpoints/caso.py`
-- [x] `app/api/v1/endpoints/catalogo_estados.py`
+- [x] `app/api/v1/endpoints/emprendedores.py` ✨ **CON JWT**
+- [x] `app/api/v1/endpoints/caso.py` ✨ **CON JWT**
+- [x] `app/api/v1/endpoints/catalogo_estados.py` ✨ **CON JWT**
+
+### JWT y Autenticación:
+- [x] `app/core/security.py` - Hash, JWT, verify, get_current_user, require_role
+- [x] `app/models/rol.py` ✨ **NUEVO**
+- [x] `app/models/usuario.py` ✨ **NUEVO**
+- [x] `app/schemas/auth.py` - LoginRequest, LoginResponse, UsuarioActual
+- [x] `app/api/v1/endpoints/auth.py` - Login, /me, logout ✨ **COMPLETO**
+- [x] `scripts/create_admin.py` - Script para crear admin inicial
+- [x] `GUIA_JWT.md` - Documentación completa de JWT
 
 ## ⏳ PENDIENTES (Para tus compañeros)
 
-### 📦 Models (8 archivos)
-- [ ] `app/models/rol.py`
-- [ ] `app/models/usuario.py`
+### 📦 Models (6 archivos)
 - [ ] `app/models/convocatoria.py`
 - [ ] `app/models/programa.py`
 - [ ] `app/models/apoyo.py`
@@ -26,8 +35,8 @@ Este documento lista todos los archivos que faltan implementar en el proyecto.
 - [ ] `app/models/auditoria.py`
 
 ### 📝 Schemas (8 archivos)
-- [ ] `app/schemas/rol.py`
-- [ ] `app/schemas/usuario.py`
+- [ ] `app/schemas/rol.py` (opcional, si quieren CRUD completo)
+- [ ] `app/schemas/usuario.py` (para endpoints de usuarios)
 - [ ] `app/schemas/convocatoria.py`
 - [ ] `app/schemas/programa.py`
 - [ ] `app/schemas/apoyo.py`
@@ -36,8 +45,8 @@ Este documento lista todos los archivos que faltan implementar en el proyecto.
 - [ ] `app/schemas/auditoria.py`
 
 ### 🛣️ Endpoints (8 archivos)
-- [ ] `app/api/v1/endpoints/rol.py`
-- [ ] `app/api/v1/endpoints/usuario.py`
+- [ ] `app/api/v1/endpoints/rol.py` (opcional, GET público + CRUD admin)
+- [ ] `app/api/v1/endpoints/usuario.py` ⚠️ **IMPORTANTE para gestión de usuarios**
 - [ ] `app/api/v1/endpoints/convocatoria.py`
 - [ ] `app/api/v1/endpoints/programa.py`
 - [ ] `app/api/v1/endpoints/apoyo.py`
@@ -111,10 +120,17 @@ Por dependencias, implementar en este orden:
 
 ## 🎯 PROGRESO GENERAL
 
-**Total:** 33 archivos
-- ✅ Completados: 9 (27%)
-- ⏳ Pendientes: 24 (73%)
+**Total:** 33 archivos (incluyendo JWT)
+- ✅ Completados: 16 (48%) 🎉
+- ⏳ Pendientes: 17 (52%)
+
+**Desglose por categoría:**
+- Models: 5/11 completos (45%)
+- Schemas: 4/11 completos (36%)
+- Endpoints: 4/11 completos (36%)
+- Core/Scripts: 3/3 completos (100%) ✅
 
 ---
 
-**Última actualización:** 16 de febrero de 2026
+**Última actualización:** 19 de febrero de 2026
+**🔐 JWT COMPLETAMENTE IMPLEMENTADO Y FUNCIONAL**
