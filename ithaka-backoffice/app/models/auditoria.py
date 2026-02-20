@@ -13,12 +13,20 @@ Columnas según SQL:
 - id_usuario INTEGER NOT NULL (FK a usuario)
 - id_caso INTEGER NOT NULL (FK a caso)
 """
+from datetime import datetime
 
-# from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
-# from sqlalchemy.orm import relationship
-# from datetime import datetime
-# from app.db.database import Base
-# 
-# class Auditoria(Base):
-#     __tablename__ = "auditoria"
-#     # ... agregar columnas
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+
+from app.db.database import Base
+
+
+class Auditoria(Base):
+    __tablename__ = "auditoria"
+
+    id_auditoria = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    accion = Column(String(150), nullable=False)
+    valor_anterior = Column(Text)
+    valor_nuevo = Column(Text)
+    id_usuario = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False)
+    id_caso = Column(Integer, ForeignKey("caso.id_caso"), nullable=False)
