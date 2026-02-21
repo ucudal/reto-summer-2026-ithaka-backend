@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models import Caso
 from app.models import CatalogoEstados
+from app.models import Convocatoria
 from app.models.usuario import Usuario
 from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse
 from app.core.security import get_current_user, require_role
@@ -60,14 +61,32 @@ def obtener_caso(
     URL: GET /api/v1/casos/5
     """
     caso = db.query(Caso).filter(Caso.id_caso == caso_id).first()
+    id_estado = caso.id_estado if caso else None
+    id_emprendedor = caso.id_emprendedor if caso else None
+    id_convocatoria = caso.id_convocatoria if caso else None
     
+    if id_estado:
+        estado = db.query(CatalogoEstados).filter(CatalogoEstados.id_estado == id_estado).first()
+        caso.id_estado = estado.nombre_estado if estado else None
+    
+    if id_emprendedor:
+        emprendedor = db.query(Usuario).filter(Usuario.id_usuario == id_emprendedor).first()
+        caso.id_emprendedor = f"{emprendedor.nombre} {emprendedor.apellido}" if emprendedor else None   
+    
+    if id_convocatoria:
+        convocatoria = db.query(Convocatoria).filter(Convocatoria.id_convocatoria == id_convocatoria).first()
+        caso.id_convocatoria = convocatoria.nombre if convocatoria else None
+    
+        
     if not caso:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Caso {caso_id} no encontrado"
         )
     
-    return caso
+    custom_case = {"fecha_creacion": caso.fecha_creacion, "id_caso": caso.id_caso,"descripcion": caso.descripcion, "estado": caso.id_estado, "emprendedor": caso.id_emprendedor, "convocatoria": caso.id_convocatoria, "consentimiento_datos": caso.consentimiento_datos, "nombre_caso": caso.nombre_caso, "datos_chatbot": caso.datos_chatbot}
+    
+    return custom_case
 
 
 # ============================================================================
