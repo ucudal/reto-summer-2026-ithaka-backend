@@ -5,10 +5,10 @@ INSERT INTO rol (nombre_rol) VALUES
     ('Tutor');
 
 -- Usuarios
-INSERT INTO usuario (nombre, email, password_hash, activo, id_rol) VALUES 
-    ('Juan Pérez', 'juan.perez@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIHe.8YY7O', TRUE, 1),
-    ('María González', 'maria.gonzalez@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIHe.8YY7O', TRUE, 2),
-    ('Pedro Rodríguez', 'pedro.rodriguez@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIHe.8YY7O', TRUE, 3);
+INSERT INTO usuario (nombre, apellido, email, password_hash, activo, id_rol) VALUES 
+    ('Juan', 'Pérez', 'juan.perez@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIHe.8YY7O', TRUE, 1),
+    ('María', 'González', 'maria.gonzalez@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIHe.8YY7O', TRUE, 2),
+    ('Pedro', 'Rodríguez', 'pedro.rodriguez@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIHe.8YY7O', TRUE, 3);
 
 -- Emprendedores
 INSERT INTO emprendedor (nombre, apellido, email, telefono, documento_identidad, pais_residencia, ciudad_residencia, campus_ucu, relacion_ucu, facultad_ucu, canal_llegada, motivacion, fecha_registro) VALUES 

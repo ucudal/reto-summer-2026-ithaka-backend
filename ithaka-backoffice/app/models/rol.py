@@ -21,7 +21,6 @@ class Rol(Base):
     # Columnas
     id_rol = Column(Integer, primary_key=True, index=True, autoincrement=True)
     nombre_rol = Column(String(50), nullable=False, unique=True)
-    descripcion = Column(Text, nullable=True)
     
     # Relaciones
     usuarios = relationship("Usuario", back_populates="rol")

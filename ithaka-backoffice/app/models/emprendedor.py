@@ -10,17 +10,17 @@ class Emprendedor(Base):
     
     id_emprendedor = Column(Integer, primary_key=True, index=True)
     
-
     nombre = Column(String(150), nullable=False)
-    
+    apellido = Column(String(150), nullable=False)
     email = Column(String(150), nullable=False)
-    
-    telefono = Column(String(50))
-    
-    vinculo_institucional = Column(String(150))
-    
-    # Fecha en que se registró en el sistema
-    # DateTime = tipo fecha y hora
-    # default=datetime.utcnow = si no se le pasa valor, pone la fecha/hora actual
+    telefono = Column(String(50), nullable=True)
+    documento_identidad = Column(String(50), nullable=True)
+    pais_residencia = Column(String(100), nullable=True)
+    ciudad_residencia = Column(String(100), nullable=True)
+    campus_ucu = Column(String(100), nullable=True)
+    relacion_ucu = Column(String(100), nullable=True)
+    facultad_ucu = Column(String(100), nullable=True)
+    canal_llegada = Column(String(100), nullable=True)
+    motivacion = Column(String, nullable=True)  # TEXT
     fecha_registro = Column(DateTime, default=datetime.utcnow)
 

@@ -27,6 +27,8 @@ from app.models.usuario import Usuario
 from app.models.caso import Caso
 from app.models.nota import Nota
 from app.models.auditoria import Auditoria
+from app.models.asignacion import Asignacion
+from app.models.apoyo_solicitado import ApoyoSolicitado
 
 
 # Esto permite hacer: from app.models import Usuario, Caso, etc.
@@ -41,4 +43,6 @@ __all__ = [
     "Convocatoria",
     "Programa",
     "Apoyo",
+    "Asignacion",
+    "ApoyoSolicitado",
 ]

@@ -12,6 +12,7 @@ CREATE TABLE rol (
 CREATE TABLE usuario (
     id_usuario SERIAL PRIMARY KEY,
     nombre VARCHAR(150) NOT NULL,
+    apellido VARCHAR(150),
     email VARCHAR(150) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     activo BOOLEAN DEFAULT TRUE,

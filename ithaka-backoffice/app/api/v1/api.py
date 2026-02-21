@@ -14,13 +14,17 @@ from fastapi import APIRouter
 
 # Importar los routers de cada endpoint
 from app.api.v1.endpoints import (
+    apoyo,
+    apoyo_solicitado,
+    asignacion,
     auditoria,
     caso,
     catalogo_estados,
+    convocatoria,
     emprendedores,
     nota,
-    convocatoria,
     programa,
+    rol,
     usuario,
     auth
 )
@@ -93,6 +97,34 @@ api_router.include_router(
     usuario.router,
     prefix="/usuarios",
     tags=["usuarios"]
+)
+
+# Roles
+api_router.include_router(
+    rol.router,
+    prefix="/roles",
+    tags=["roles"]
+)
+
+# Asignaciones
+api_router.include_router(
+    asignacion.router,
+    prefix="/asignaciones",
+    tags=["asignaciones"]
+)
+
+# Apoyos
+api_router.include_router(
+    apoyo.router,
+    prefix="/apoyos",
+    tags=["apoyos"]
+)
+
+# Apoyos Solicitados
+api_router.include_router(
+    apoyo_solicitado.router,
+    prefix="/apoyos-solicitados",
+    tags=["apoyos-solicitados"]
 )
 
 # ============================================================================

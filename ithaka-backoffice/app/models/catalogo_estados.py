@@ -11,7 +11,7 @@ class CatalogoEstados(Base):
     nombre_estado = Column(String(100), nullable=False)
     
     # Postulacion o Proyecto
-    tipo_caso = Column(String(20), nullable=False)
+    tipo_caso = Column(String(100), nullable=False)
     
     # CheckConstraint: Validación a nivel de base de datos
     # Solo permite los valores 'Postulacion' o 'Proyecto'
