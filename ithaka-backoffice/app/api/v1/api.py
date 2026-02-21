@@ -95,12 +95,6 @@ api_router.include_router(
     tags=["usuarios"]
 )
 
-# api_router.include_router(
-#     auth.router,
-#     prefix="/auth",
-#     tags=["autenticación"]
-# )
-
 # ============================================================================
 # RESULTADO FINAL
 # ============================================================================
