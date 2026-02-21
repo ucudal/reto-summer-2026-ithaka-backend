@@ -189,7 +189,7 @@ def actualizar_usuario(
     return usuario     
 
 # ============================================================================
-# DESACTIVAR USUARIO (DELETE /{id}) - Soft delete
+# DESACTIVAR USUARIO (DELETE /{id}) - Soft delete con auditoría
 # ============================================================================
 @router.delete("/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT)
 def desactivar_usuario(
@@ -197,7 +197,12 @@ def desactivar_usuario(
     db: Session = Depends(get_db)
     # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
 ):
-    """Desactivar usuario (solo admin)"""
+    """
+    Desactivar usuario (soft delete, solo admin)
+    
+    Los usuarios NO se eliminan físicamente para preservar el historial
+    de auditorías, asignaciones y notas. En su lugar, se marcan como inactivos.
+    """
     usuario = db.query(Usuario).filter(Usuario.id_usuario == usuario_id).first()
     
     if not usuario:
@@ -213,7 +218,66 @@ def desactivar_usuario(
     #         detail="No puedes desactivar tu propio usuario"
     #     )
     
+    if not usuario.activo:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario ya está inactivo"
+        )
+    
+    # Auditoría: Usuario desactivado
+    from app.services.auditoria_service import registrar_auditoria_general
+    registrar_auditoria_general(
+        db=db,
+        accion="Usuario desactivado",
+        id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+        valor_anterior=f"Usuario '{usuario.nombre} {usuario.apellido or ''}' (activo=True)",
+        valor_nuevo=f"Usuario '{usuario.nombre} {usuario.apellido or ''}' (activo=False)"
+    )
+    
     usuario.activo = False
     db.commit()
     
     return None
+
+
+# ============================================================================
+# REACTIVAR USUARIO (PUT /{id}/reactivar)
+# ============================================================================
+@router.put("/{usuario_id}/reactivar", status_code=status.HTTP_200_OK)
+def reactivar_usuario(
+    usuario_id: int,
+    db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
+):
+    """
+    Reactivar usuario previamente desactivado (solo admin)
+    """
+    usuario = db.query(Usuario).filter(Usuario.id_usuario == usuario_id).first()
+    
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    if usuario.activo:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El usuario ya está activo"
+        )
+    
+    # Auditoría: Usuario reactivado
+    from app.services.auditoria_service import registrar_auditoria_general
+    registrar_auditoria_general(
+        db=db,
+        accion="Usuario reactivado",
+        id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+        valor_anterior=f"Usuario '{usuario.nombre} {usuario.apellido or ''}' (activo=False)",
+        valor_nuevo=f"Usuario '{usuario.nombre} {usuario.apellido or ''}' (activo=True)"
+    )
+    
+    usuario.activo = True
+    db.commit()
+    db.refresh(usuario)
+    
+    return usuario

@@ -154,38 +154,38 @@ def actualizar_caso(
     return caso
 
 
-# ============================================================================
-# ELIMINAR (DELETE /{id})
-# ============================================================================
-@router.delete("/{caso_id}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_caso(
-    caso_id: int,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
-):
-    """
-    Eliminar un caso
+# # ============================================================================
+# # ELIMINAR (DELETE /{id})
+# # ============================================================================
+# @router.delete("/{caso_id}", status_code=status.HTTP_204_NO_CONTENT)
+# def eliminar_caso(
+#     caso_id: int,
+#     db: Session = Depends(get_db)
+#     # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
+# ):
+#     """
+#     Eliminar un caso
     
-    URL: DELETE /api/v1/casos/5
-    """
-    caso = db.query(Caso).filter(Caso.id_caso == caso_id).first()
+#     URL: DELETE /api/v1/casos/5
+#     """
+#     caso = db.query(Caso).filter(Caso.id_caso == caso_id).first()
     
-    if not caso:
-        raise HTTPException(status_code=404, detail="Caso no encontrado")
+#     if not caso:
+#         raise HTTPException(status_code=404, detail="Caso no encontrado")
     
-    # Auditoría: Caso eliminado
-    # TODO: Cuando se active JWT, usar current_user.id_usuario
-    registrar_auditoria_caso(
-        db=db,
-        accion="Caso eliminado",
-        id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
-        id_caso=caso_id,
-        valor_anterior=f"Caso '{caso.nombre_caso}' (ID: {caso_id})"
-    )
+#     # Auditoría: Caso eliminado
+#     # TODO: Cuando se active JWT, usar current_user.id_usuario
+#     registrar_auditoria_caso(
+#         db=db,
+#         accion="Caso eliminado",
+#         id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+#         id_caso=caso_id,
+#         valor_anterior=f"Caso '{caso.nombre_caso}' (ID: {caso_id})"
+#     )
     
-    db.delete(caso)
-    db.commit()
-    return None
+#     db.delete(caso)
+#     db.commit()
+#     return None
 
 
 

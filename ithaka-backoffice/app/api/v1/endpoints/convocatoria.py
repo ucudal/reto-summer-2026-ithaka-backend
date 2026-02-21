@@ -81,25 +81,41 @@ def actualizar_convocatoria(convocatoria_id: int, convocatoria_data: Convocatori
     return convocatoria
 
 
-@router.delete("/{convocatoria_id}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_convocatoria(convocatoria_id: int, db: Session = Depends(get_db)):
-    convocatoria = (
-        db.query(Convocatoria)
-        .filter(Convocatoria.id_convocatoria == convocatoria_id)
-        .first()
-    )
-    if not convocatoria:
-        raise HTTPException(status_code=404, detail="Convocatoria no encontrada")
 
-    # Auditoría: Convocatoria eliminada
-    # TODO: Cuando se active JWT, usar current_user.id_usuario
-    registrar_auditoria_general(
-        db=db,
-        accion="Convocatoria eliminada",
-        id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
-        valor_anterior=f"Convocatoria '{convocatoria.nombre}' (ID: {convocatoria_id})"
-    )
+# ============================================================================
+# ELIMINAR (DELETE /{id}) - ENDPOINT DESHABILITADO
+# ============================================================================
+# Las convocatorias NO se eliminan porque pueden tener casos asociados.
+# Eliminarlas rompería la integridad referencial. Si necesita "cerrar"
+# una convocatoria, actualice su fecha_cierre.
+#
+# @router.delete("/{convocatoria_id}", status_code=status.HTTP_204_NO_CONTENT)
+# def eliminar_convocatoria(...):
+#     raise HTTPException(
+#         status_code=status.HTTP_403_FORBIDDEN,
+#         detail="No se permite eliminar convocatorias con casos asociados."
+#     )
 
-    db.delete(convocatoria)
-    db.commit()
-    return None
+# @router.delete("/{convocatoria_id}", status_code=status.HTTP_204_NO_CONTENT)
+# def eliminar_convocatoria(convocatoria_id: int, db: Session = Depends(get_db)):
+#     convocatoria = (
+#         db.query(Convocatoria)
+#         .filter(Convocatoria.id_convocatoria == convocatoria_id)
+#         .first()
+#     )
+#     if not convocatoria:
+#         raise HTTPException(status_code=404, detail="Convocatoria no encontrada")
+
+#     # Auditoría: Convocatoria eliminada
+#     # TODO: Cuando se active JWT, usar current_user.id_usuario
+#     registrar_auditoria_general(
+#         db=db,
+#         accion="Convocatoria eliminada",
+#         id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+#         valor_anterior=f"Convocatoria '{convocatoria.nombre}' (ID: {convocatoria_id})"
+#     )
+
+#     db.delete(convocatoria)
+#     db.commit()
+#     return None
+
