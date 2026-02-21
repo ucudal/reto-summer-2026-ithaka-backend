@@ -4,7 +4,7 @@ Módulo de seguridad: JWT, passwords y autenticación
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -17,9 +17,6 @@ from app.models.usuario import Usuario
 # ============================================================================
 # CONFIGURACIÓN
 # ============================================================================
-
-# Contexto para hashear passwords con bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Esquema de seguridad HTTP Bearer (para Swagger UI)
 security = HTTPBearer()
@@ -43,7 +40,11 @@ def hash_password(password: str) -> str:
         >>> hash_password("admin123")
         "$2b$12$KIXv5McSxK9Y7J3..."
     """
-    return pwd_context.hash(password)
+    # Convertir password a bytes y hashear con bcrypt
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -63,7 +64,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         >>> verify_password("wrongpass", "$2b$12$KIXv5McSxK9Y7J3...")
         False
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        password_bytes = plain_password.encode('utf-8')
+        hashed_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(password_bytes, hashed_bytes)
+    except Exception as e:
+        # Si hay algún error al verificar (hash corrupto, etc.)
+        print(f"Error verificando password: {e}")
+        return False
 
 
 

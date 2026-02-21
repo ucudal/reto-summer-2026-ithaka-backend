@@ -25,8 +25,8 @@ El sistema Ithaka maneja 3 roles principales de usuario:
 ### 👥 Usuarios
 | Endpoint | Admin | Coordinador | Tutor | Descripción |
 |----------|:-----:|:-----------:|:-----:|-------------|
-| `GET /api/v1/usuarios` | ✅ | ❌ | ❌ | Listar todos los usuarios |
-| `GET /api/v1/usuarios/{id}` | ✅ | 🟡¹ | 🟡¹ | Ver usuario (¹solo su propio perfil) |
+| `GET /api/v1/usuarios` | ✅ | ✅ | ❌ | Listar todos los usuarios |
+| `GET /api/v1/usuarios/{id}` | ✅ | ✅ | 🟡¹ | Ver usuario (¹solo su propio perfil para Tutor) |
 | `POST /api/v1/usuarios` | ✅ | ❌ | ❌ | Crear nuevo usuario |
 | `PUT /api/v1/usuarios/{id}` | ✅ | 🟡¹ | 🟡¹ | Actualizar usuario (¹solo su propio perfil) |
 | `DELETE /api/v1/usuarios/{id}` | ✅ | ❌ | ❌ | Eliminar usuario |
@@ -61,7 +61,7 @@ El sistema Ithaka maneja 3 roles principales de usuario:
 | `GET /api/v1/casos` | ✅ | ✅ | ✅² | Listar casos (²solo asignados) |
 | `GET /api/v1/casos/{id}` | ✅ | ✅ | ✅² | Ver caso específico (²si está asignado) |
 | `POST /api/v1/casos` | ✅ | ✅ | ❌ | Crear nuevo caso |
-| `PUT /api/v1/casos/{id}` | ✅ | ✅ | ❌ | Actualizar caso |
+| `PUT /api/v1/casos/{id}` | ✅ | ✅ | ✅² | Actualizar caso (²solo casos asignados) |
 | `DELETE /api/v1/casos/{id}` | ✅ | ❌ | ❌ | Eliminar caso |
 | `GET /api/v1/casos/{id}/historial` | ✅ | ✅ | ✅² | Ver historial completo (²si está asignado) |
 
@@ -86,7 +86,7 @@ El sistema Ithaka maneja 3 roles principales de usuario:
 | `GET /api/v1/notas/caso/{id_caso}` | ✅ | ✅ | ✅² | Ver notas de un caso (²si está asignado) |
 | `POST /api/v1/notas` | ✅ | ✅ | ✅² | Crear nota (²solo en casos asignados) |
 | `PUT /api/v1/notas/{id}` | ✅ | ✅ | 🟡³ | Actualizar nota (³solo sus propias notas) |
-| `DELETE /api/v1/notas/{id}` | ✅ | ✅ | ❌ | Eliminar nota |
+| `DELETE /api/v1/notas/{id}` | ✅ | ✅ | 🟡³ | Eliminar nota (³solo sus propias notas) |
 
 ---
 
@@ -124,12 +124,12 @@ El sistema Ithaka maneja 3 roles principales de usuario:
 ### 🤝 Asignaciones
 | Endpoint | Admin | Coordinador | Tutor | Descripción |
 |----------|:-----:|:-----------:|:-----:|-------------|
-| `GET /api/v1/asignaciones` | ✅ | ✅ | ✅⁵ | Listar asignaciones (⁵solo las suyas) |
-| `GET /api/v1/asignaciones/{id}` | ✅ | ✅ | ✅⁵ | Ver asignación (⁵solo si es suya) |
-| `GET /api/v1/asignaciones/caso/{id_caso}` | ✅ | ✅ | ✅⁵ | Ver asignaciones de un caso (⁵si está asignado) |
-| `GET /api/v1/asignaciones/usuario/{id_usuario}` | ✅ | ✅ | 🟡⁶ | Ver asignaciones de usuario (⁶solo las suyas) |
-| `POST /api/v1/asignaciones` | ✅ | ✅ | ❌ | Crear asignación |
-| `DELETE /api/v1/asignaciones/{id}` | ✅ | ✅ | ❌ | Eliminar asignación |
+| `GET /api/v1/asignaciones` | ✅ | ✅ | ✅ | Listar asignaciones |
+| `GET /api/v1/asignaciones/{id}` | ✅ | ✅ | ✅ | Ver asignación |
+| `GET /api/v1/asignaciones/caso/{id_caso}` | ✅ | ✅ | ✅ | Ver asignaciones de un caso |
+| `GET /api/v1/asignaciones/usuario/{id_usuario}` | ✅ | ✅ | ✅ | Ver asignaciones de usuario |
+| `POST /api/v1/asignaciones` | ✅ | ✅ | ✅ | Crear asignación |
+| `DELETE /api/v1/asignaciones/{id}` | ✅ | ✅ | ✅ | Eliminar asignación |
 
 ---
 
@@ -152,7 +152,7 @@ El sistema Ithaka maneja 3 roles principales de usuario:
 | `GET /api/v1/apoyos-solicitados/{id}` | ✅ | ✅ | ✅⁷ | Ver apoyo solicitado (⁷si es de caso asignado) |
 | `GET /api/v1/apoyos-solicitados/caso/{id_caso}` | ✅ | ✅ | ✅⁷ | Ver apoyos solicitados de un caso (⁷si está asignado) |
 | `POST /api/v1/apoyos-solicitados` | ✅ | ✅ | ❌ | Crear apoyo solicitado |
-| `PUT /api/v1/apoyos-solicitados/{id}` | ✅ | ✅ | ❌ | Actualizar apoyo solicitado |
+| `PUT /api/v1/apoyos-solicitados/{id}` | ✅ | ✅ | ✅⁷ | Actualizar apoyo solicitado (⁷solo de casos asignados) |
 | `DELETE /api/v1/apoyos-solicitados/{id}` | ✅ | ✅ | ❌ | Eliminar apoyo solicitado |
 
 ---
@@ -165,17 +165,13 @@ El sistema Ithaka maneja 3 roles principales de usuario:
 
 ### Notas Especiales
 
-¹ **Perfil propio**: Los usuarios Coordinador y Tutor pueden ver/editar **solo su propio perfil**
+¹ **Perfil propio**: Los usuarios Tutor pueden ver/editar **solo su propio perfil**. El Coordinador puede ver todos los usuarios.
 
 ² **Casos asignados**: Los Tutores solo ven información de casos que les fueron **asignados explícitamente**
 
-³ **Notas propias**: Los Tutores solo pueden editar **sus propias notas**, no las de otros usuarios
+³ **Notas propias**: Los Tutores solo pueden editar y eliminar **sus propias notas**, no las de otros usuarios
 
 ⁴ **Auditoría propia**: Coordinadores y Tutores solo ven su **propio historial de acciones**
-
-⁵ **Asignaciones propias**: Los Tutores solo ven las asignaciones en las que **ellos están involucrados**
-
-⁶ **Usuario específico**: Solo pueden consultar asignaciones de **su propio id_usuario**
 
 ⁷ **Contexto de caso**: Los Tutores solo ven apoyos vinculados a **casos que tienen asignados**
 
@@ -287,19 +283,19 @@ def obtener_caso(
 | Recurso | Endpoints Totales | Admin | Coordinador | Tutor |
 |---------|:-----------------:|:-----:|:-----------:|:-----:|
 | Autenticación | 4 | 4 | 4 | 4 |
-| Usuarios | 5 | 5 | 1* | 1* |
+| Usuarios | 5 | 5 | 5 | 1* |
 | Roles | 5 | 5 | 0 | 0 |
 | Emprendedores | 5 | 5 | 4 | 3* |
-| Casos | 6 | 6 | 5 | 5* |
+| Casos | 6 | 6 | 6 | 6* |
 | Estados | 5 | 5 | 2 | 2 |
-| Notas | 6 | 6 | 6 | 5* |
+| Notas | 6 | 6 | 6 | 6* |
 | Auditoría | 3 | 3 | 3 | 1* |
 | Convocatorias | 5 | 5 | 4 | 2 |
 | Programas | 5 | 5 | 4 | 2 |
-| Asignaciones | 6 | 6 | 5 | 4* |
+| Asignaciones | 6 | 6 | 6 | 6 |
 | Apoyos | 6 | 6 | 6 | 4* |
-| Apoyos Solicitados | 6 | 6 | 6 | 4* |
-| **TOTAL** | **67** | **67** | **54** | **41*** |
+| Apoyos Solicitados | 6 | 6 | 6 | 5* |
+| **TOTAL** | **67** | **67** | **67** | **50*** |
 
 *\* Acceso condicional basado en asignaciones y permisos específicos*
 
