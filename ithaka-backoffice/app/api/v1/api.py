@@ -14,9 +14,19 @@ from fastapi import APIRouter
 
 # Importar los routers de cada endpoint
 from app.api.v1.endpoints import (
-    emprendedores,
+    apoyo,
+    apoyo_solicitado,
+    asignacion,
+    auditoria,
+    caso,
     catalogo_estados,
-    caso
+    convocatoria,
+    emprendedores,
+    nota,
+    programa,
+    rol,
+    usuario,
+    auth
 )
 
 # Router principal que agrupa todo
@@ -47,25 +57,75 @@ api_router.include_router(
     tags=["casos"]
 )
 
+# Notas
+api_router.include_router(
+    nota.router,
+    prefix="/notas",
+    tags=["notas"]
+)
 
-#
-# api_router.include_router(
-#     convocatorias.router,
-#     prefix="/convocatorias",
-#     tags=["convocatorias"]
-# )
-#
-# api_router.include_router(
-#     programas.router,
-#     prefix="/programas",
-#     tags=["programas"]
-# )
-#
-# api_router.include_router(
-#     auth.router,
-#     prefix="/auth",
-#     tags=["autenticación"]
-# )
+# Auditoría
+api_router.include_router(
+    auditoria.router,
+    prefix="/auditoria",
+    tags=["auditoria"]
+)
+
+# Convocatorias
+api_router.include_router(
+    convocatoria.router,
+    prefix="/convocatorias",
+    tags=["convocatorias"]
+)
+
+# Programas
+api_router.include_router(
+    programa.router,
+    prefix="/programas",
+    tags=["programas"]
+)
+
+# Autenticación
+api_router.include_router(
+    auth.router,
+    prefix="/auth",
+    tags=["autenticación"]
+)
+
+# Usuarios
+api_router.include_router(
+    usuario.router,
+    prefix="/usuarios",
+    tags=["usuarios"]
+)
+
+# Roles
+api_router.include_router(
+    rol.router,
+    prefix="/roles",
+    tags=["roles"]
+)
+
+# Asignaciones
+api_router.include_router(
+    asignacion.router,
+    prefix="/asignaciones",
+    tags=["asignaciones"]
+)
+
+# Apoyos
+api_router.include_router(
+    apoyo.router,
+    prefix="/apoyos",
+    tags=["apoyos"]
+)
+
+# Apoyos Solicitados
+api_router.include_router(
+    apoyo_solicitado.router,
+    prefix="/apoyos-solicitados",
+    tags=["apoyos-solicitados"]
+)
 
 # ============================================================================
 # RESULTADO FINAL

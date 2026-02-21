@@ -6,7 +6,7 @@ Este archivo importa todos los modelos para que sean más fáciles de usar.
 En lugar de hacer:
     from app.models.usuario import Usuario
     from app.models.caso import Caso
-    
+
 Puedes hacer:
     from app.models import Usuario, Caso
 
@@ -15,17 +15,34 @@ para que pueda crear las relaciones correctamente.
 """
 
 # Modelos base (sin dependencias)
+from app.models.rol import Rol
 from app.models.emprendedor import Emprendedor
 from app.models.catalogo_estados import CatalogoEstados
+from app.models.convocatoria import Convocatoria
+from app.models.programa import Programa
+from app.models.apoyo import Apoyo
 
 # Modelos con foreign keys
-
+from app.models.usuario import Usuario
 from app.models.caso import Caso
+from app.models.nota import Nota
+from app.models.auditoria import Auditoria
+from app.models.asignacion import Asignacion
+from app.models.apoyo_solicitado import ApoyoSolicitado
 
 
 # Esto permite hacer: from app.models import Usuario, Caso, etc.
 __all__ = [
+    "Rol",
+    "Usuario",
     "Emprendedor",
     "CatalogoEstados",
     "Caso",
+    "Nota",
+    "Auditoria",
+    "Convocatoria",
+    "Programa",
+    "Apoyo",
+    "Asignacion",
+    "ApoyoSolicitado",
 ]

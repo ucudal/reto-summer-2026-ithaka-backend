@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 # Imports de tu aplicación
 from app.api.deps import get_db
 from app.models import Emprendedor
+from app.models.usuario import Usuario
 from app.schemas.emprendedor import EmprendedorCreate, EmprendedorUpdate, EmprendedorResponse
+from app.core.security import get_current_user, require_role
 
 
 router = APIRouter()
@@ -27,6 +29,7 @@ def listar_emprendedores(
 def obtener_emprendedor(
     emprendedor_id: int,  
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
 ):
   
     emprendedor = db.query(Emprendedor).filter(
@@ -60,6 +63,7 @@ def actualizar_emprendedor(
     emprendedor_id: int,
     emprendedor_data: EmprendedorUpdate,
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
 ):
    
     emprendedor = db.query(Emprendedor).filter(
@@ -80,33 +84,48 @@ def actualizar_emprendedor(
     db.refresh(emprendedor)
     return emprendedor
 
+# ============================================================================
+# ELIMINAR (DELETE /{id}) - ENDPOINT DESHABILITADO
+# ============================================================================
+# Los emprendedores NO se eliminan porque tienen casos asociados y
+# eliminarlos rompería la integridad referencial. Si necesita "eliminar"
+# un emprendedor, considere implementar un campo 'activo' en la tabla.
+#
+# @router.delete("/{emprendedor_id}", status_code=status.HTTP_204_NO_CONTENT)
+# def eliminar_emprendedor(...):
+#     raise HTTPException(
+#         status_code=status.HTTP_403_FORBIDDEN,
+#         detail="No se permite eliminar emprendedores con casos asociados."
+#     )
 
-@router.delete("/{emprendedor_id}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_emprendedor(
-    emprendedor_id: int,
-    db: Session = Depends(get_db)
-):
+# @router.delete("/{emprendedor_id}", status_code=status.HTTP_204_NO_CONTENT)
+# def eliminar_emprendedor(
+#     emprendedor_id: int,
+#     db: Session = Depends(get_db)
+#     # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
+# ):
    
-    emprendedor = db.query(Emprendedor).filter(
-        Emprendedor.id_emprendedor == emprendedor_id
-    ).first()
+#     emprendedor = db.query(Emprendedor).filter(
+#         Emprendedor.id_emprendedor == emprendedor_id
+#     ).first()
     
-    if not emprendedor:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Emprendedor con ID {emprendedor_id} no encontrado"
-        )
+#     if not emprendedor:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail=f"Emprendedor con ID {emprendedor_id} no encontrado"
+#         )
     
-    db.delete(emprendedor)
-    db.commit()
+#     db.delete(emprendedor)
+#     db.commit()
     
-    return None
+#     return None
 
 
 @router.get("/{emprendedor_id}/casos")
 def obtener_casos_emprendedor(
     emprendedor_id: int,
     db: Session = Depends(get_db)
+    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
 ):
   
     emprendedor = db.query(Emprendedor).filter(
