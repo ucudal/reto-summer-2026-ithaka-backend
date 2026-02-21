@@ -150,10 +150,6 @@ def eliminar_caso(
 
 
 
-# ============================================================================
-# ENDPOINTS PERSONALIZADOS (OPCIONALES)
-# ============================================================================
-
 @router.put("/{caso_id}/cambiar_estado")
 def cambiar_estado_caso(
     caso_id: int,
