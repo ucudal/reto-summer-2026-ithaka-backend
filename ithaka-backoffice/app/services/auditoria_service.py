@@ -49,3 +49,33 @@ def registrar_auditoria_caso(
     )
     db.add(registro)
     return registro
+
+
+def registrar_auditoria_general(
+    db: Session,
+    *,
+    accion: str,
+    id_usuario: int,
+    valor_anterior: Any = None,
+    valor_nuevo: Any = None,
+    id_caso: Optional[int] = None,
+) -> Auditoria:
+    """
+    Registra un evento de auditoría general (puede o no estar ligado a un caso).
+    
+    Útil para auditar entidades como Convocatoria, Programa, etc.
+    
+    Importante:
+    - No hace commit.
+    - Debe llamarse dentro de la misma transacción de negocio.
+    """
+    registro = Auditoria(
+        accion=accion,
+        valor_anterior=_serializar_valor(valor_anterior),
+        valor_nuevo=_serializar_valor(valor_nuevo),
+        id_usuario=id_usuario,
+        id_caso=id_caso,
+    )
+    db.add(registro)
+    return registro
+    return registro

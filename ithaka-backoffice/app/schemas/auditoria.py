@@ -37,9 +37,9 @@ class AuditoriaBase(BaseModel):
         ...,
         description="ID del usuario que realizó la acción"
     )
-    id_caso: int = Field(
-        ...,
-        description="ID del caso sobre el que se realizó la acción"
+    id_caso: Optional[int] = Field(
+        None,
+        description="ID del caso sobre el que se realizó la acción (opcional para auditoría general)"
     )
 
 

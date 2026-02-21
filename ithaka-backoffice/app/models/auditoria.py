@@ -29,4 +29,4 @@ class Auditoria(Base):
     valor_anterior = Column(Text)
     valor_nuevo = Column(Text)
     id_usuario = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False)
-    id_caso = Column(Integer, ForeignKey("caso.id_caso"), nullable=False)
+    id_caso = Column(Integer, ForeignKey("caso.id_caso"), nullable=True)

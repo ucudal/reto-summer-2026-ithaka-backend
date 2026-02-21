@@ -177,7 +177,7 @@ CREATE TABLE auditoria (
     valor_anterior TEXT,
     valor_nuevo TEXT,
     id_usuario INTEGER NOT NULL,
-    id_caso INTEGER NOT NULL,
+    id_caso INTEGER,
 
     FOREIGN KEY (id_usuario)
         REFERENCES usuario(id_usuario)

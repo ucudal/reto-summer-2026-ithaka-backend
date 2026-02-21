@@ -8,6 +8,7 @@ from app.models import CatalogoEstados
 from app.models.usuario import Usuario
 from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse
 from app.core.security import get_current_user, require_role
+from app.services.auditoria_service import registrar_auditoria_caso
 
 router = APIRouter()
 
@@ -91,6 +92,18 @@ def crear_caso(
     """
     nuevo_caso = Caso(**caso_data.model_dump())
     db.add(nuevo_caso)
+    db.flush()  # Para obtener el id_caso antes del commit
+    
+    # Auditoría: Caso creado
+    # TODO: Cuando se active JWT, usar current_user.id_usuario
+    registrar_auditoria_caso(
+        db=db,
+        accion="Caso creado",
+        id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+        id_caso=nuevo_caso.id_caso,
+        valor_nuevo=f"Caso '{nuevo_caso.nombre_caso}' creado"
+    )
+    
     db.commit()
     db.refresh(nuevo_caso)
     return nuevo_caso
@@ -116,9 +129,25 @@ def actualizar_caso(
     if not caso:
         raise HTTPException(status_code=404, detail="Caso no encontrado")
     
+    # Guardar valores anteriores para auditoría
+    valores_anteriores = {}
     update_data = caso_data.model_dump(exclude_unset=True)
+    
     for field, value in update_data.items():
+        valores_anteriores[field] = getattr(caso, field)
         setattr(caso, field, value)
+    
+    # Auditoría: Caso actualizado
+    if valores_anteriores:
+        # TODO: Cuando se active JWT, usar current_user.id_usuario
+        registrar_auditoria_caso(
+            db=db,
+            accion="Caso actualizado",
+            id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+            id_caso=caso_id,
+            valor_anterior=str(valores_anteriores),
+            valor_nuevo=str(update_data)
+        )
     
     db.commit()
     db.refresh(caso)
@@ -144,6 +173,16 @@ def eliminar_caso(
     if not caso:
         raise HTTPException(status_code=404, detail="Caso no encontrado")
     
+    # Auditoría: Caso eliminado
+    # TODO: Cuando se active JWT, usar current_user.id_usuario
+    registrar_auditoria_caso(
+        db=db,
+        accion="Caso eliminado",
+        id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+        id_caso=caso_id,
+        valor_anterior=f"Caso '{caso.nombre_caso}' (ID: {caso_id})"
+    )
+    
     db.delete(caso)
     db.commit()
     return None
@@ -167,6 +206,11 @@ def cambiar_estado_caso(
     if not caso:
         raise HTTPException(status_code=404, detail="Caso no encontrado")
     
+    # Obtener estado anterior para auditoría
+    estado_anterior = db.query(CatalogoEstados).filter(
+        CatalogoEstados.id_estado == caso.id_estado
+    ).first()
+    
     estado_catalogo = db.query(CatalogoEstados).filter(
         CatalogoEstados.nombre_estado == nombre_estado,
         CatalogoEstados.tipo_caso == tipo_caso
@@ -179,6 +223,18 @@ def cambiar_estado_caso(
         )
     
     caso.id_estado = estado_catalogo.id_estado
+    
+    # Auditoría: Cambio de estado (CRÍTICO)
+    # TODO: Cuando se active JWT, usar current_user.id_usuario
+    registrar_auditoria_caso(
+        db=db,
+        accion="Cambio de estado",
+        id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+        id_caso=caso_id,
+        valor_anterior=f"{estado_anterior.nombre_estado} ({estado_anterior.tipo_caso})" if estado_anterior else None,
+        valor_nuevo=f"{nombre_estado} ({tipo_caso})"
+    )
+    
     db.commit()
     db.refresh(caso)
     
