@@ -23,10 +23,12 @@ Columnas según SQL:
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from typing import List
 
 from app.api.deps import get_db
 from app.models.usuario import Usuario
 from app.models.rol import Rol
+from app.schemas.usuario import UsuarioResponse, UsuarioCreate, UsuarioUpdate
 from app.core.security import hash_password, get_current_user, require_role
 
 router = APIRouter()
@@ -35,7 +37,7 @@ router = APIRouter()
 # ============================================================================
 # LISTAR USUARIOS (GET /)
 # ============================================================================
-@router.get("/", status_code=status.HTTP_200_OK)
+@router.get("/", response_model=List[UsuarioResponse], status_code=status.HTTP_200_OK)
 def listar_usuarios(
     skip: int = 0,
     limit: int = 100,
@@ -51,7 +53,7 @@ def listar_usuarios(
 # ============================================================================
 # OBTENER USUARIO (GET /{id})
 # ============================================================================
-@router.get("/{usuario_id}", status_code=status.HTTP_200_OK)
+@router.get("/{usuario_id}", response_model=UsuarioResponse, status_code=status.HTTP_200_OK)
 def obtener_usuario(
     usuario_id: int,
     db: Session = Depends(get_db)
@@ -78,7 +80,7 @@ def obtener_usuario(
 # ============================================================================
 # CREAR USUARIO (POST /)
 # ============================================================================
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
 def crear_usuario(
     nombre: str,
     apellido: str,
@@ -123,7 +125,7 @@ def crear_usuario(
 # ============================================================================
 # ACTUALIZAR USUARIO (PUT /{id})
 # ============================================================================
-@router.put("/{usuario_id}", status_code=status.HTTP_200_OK)
+@router.put("/{usuario_id}", response_model=UsuarioResponse, status_code=status.HTTP_200_OK)
 def actualizar_usuario(
     usuario_id: int,
     nombre: str = None,
@@ -243,7 +245,7 @@ def desactivar_usuario(
 # ============================================================================
 # REACTIVAR USUARIO (PUT /{id}/reactivar)
 # ============================================================================
-@router.put("/{usuario_id}/reactivar", status_code=status.HTTP_200_OK)
+@router.put("/{usuario_id}/reactivar", response_model=UsuarioResponse, status_code=status.HTTP_200_OK)
 def reactivar_usuario(
     usuario_id: int,
     db: Session = Depends(get_db)

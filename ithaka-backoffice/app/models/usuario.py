@@ -38,3 +38,7 @@ class Usuario(Base):
     # Otras relaciones se agregarán cuando se implementen esos modelos:
     # asignaciones = relationship("Asignacion", back_populates="usuario")
     # notas = relationship("Nota", back_populates="usuario")
+    
+    def __repr__(self):
+        """Representación que NO incluye password_hash por seguridad"""
+        return f"<Usuario(id={self.id_usuario}, email='{self.email}', rol_id={self.id_rol}, activo={self.activo})>"
