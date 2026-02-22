@@ -14,6 +14,7 @@ from app.models.apoyo import Apoyo
 from app.core.security import get_current_user, require_role
 from app.services.auditoria_service import registrar_auditoria_caso
 from app.models.asignacion import Asignacion
+from app.models.emprendedor import Emprendedor
 
 router = APIRouter()
 
@@ -73,7 +74,7 @@ def listar_casos(
         # Obtener nombre del emprendedor
         emprendedor_nombre = None
         if id_emprendedor:
-            emprendedor = db.query(Usuario).filter(Usuario.id_usuario == id_emprendedor).first()
+            emprendedor = db.query(Emprendedor).filter(Emprendedor.id_emprendedor == id_emprendedor).first()
             emprendedor_nombre = f"{emprendedor.nombre} {emprendedor.apellido}" if emprendedor else None
         
         # Obtener nombre de la convocatoria

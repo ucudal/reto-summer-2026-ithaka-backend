@@ -49,8 +49,8 @@ El sistema Ithaka maneja 3 roles principales de usuario:
 |----------|:-----:|:-----------:|:-----:|-------------|
 | `GET /api/v1/emprendedores` | ✅ | ✅ | ✅² | Listar emprendedores (²solo de casos asignados) |
 | `GET /api/v1/emprendedores/{id}` | ✅ | ✅ | ✅² | Ver emprendedor (²si tiene caso asignado) |
-| `POST /api/v1/emprendedores` | ✅ | ✅ | ❌ | Crear emprendedor |
-| `PUT /api/v1/emprendedores/{id}` | ✅ | ✅ | ❌ | Actualizar emprendedor |
+| `POST /api/v1/emprendedores` | ✅ | ❌ | ❌ | Crear emprendedor |
+| `PUT /api/v1/emprendedores/{id}` | ✅ | ❌ | ❌ | Actualizar emprendedor |
 | `DELETE /api/v1/emprendedores/{id}` | ✅ | ❌ | ❌ | Eliminar emprendedor |
 
 ---
