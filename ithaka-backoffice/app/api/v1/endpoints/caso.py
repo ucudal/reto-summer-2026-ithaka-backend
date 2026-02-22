@@ -5,8 +5,12 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models import Caso
 from app.models import CatalogoEstados
+from app.models import Convocatoria
 from app.models.usuario import Usuario
+from app.models.asignacion import Asignacion
 from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse
+from app.models.programa import Programa
+from app.models.apoyo import Apoyo
 from app.core.security import get_current_user, require_role
 from app.services.auditoria_service import registrar_auditoria_caso
 from app.models.asignacion import Asignacion
@@ -49,8 +53,58 @@ def listar_casos(
         query = query.filter(Caso.id_emprendedor == id_emprendedor)
     if id_estado:
         query = query.filter(Caso.id_estado == id_estado)
+    
     casos = query.offset(skip).limit(limit).all()
-    return {"casos": casos}
+    
+    # Transformar cada caso para devolver nombres en lugar de IDs
+    casos_transformados = []
+    for caso in casos:
+        id_estado = caso.id_estado
+        id_emprendedor = caso.id_emprendedor
+        id_convocatoria = caso.id_convocatoria
+        id_caso = caso.id_caso
+        
+        # Obtener nombre del estado
+        estado_nombre = None
+        if id_estado:
+            estado = db.query(CatalogoEstados).filter(CatalogoEstados.id_estado == id_estado).first()
+            estado_nombre = estado.nombre_estado if estado else None
+        
+        # Obtener nombre del emprendedor
+        emprendedor_nombre = None
+        if id_emprendedor:
+            emprendedor = db.query(Usuario).filter(Usuario.id_usuario == id_emprendedor).first()
+            emprendedor_nombre = f"{emprendedor.nombre} {emprendedor.apellido}" if emprendedor else None
+        
+        # Obtener nombre de la convocatoria
+        convocatoria_nombre = None
+        if id_convocatoria:
+            convocatoria = db.query(Convocatoria).filter(Convocatoria.id_convocatoria == id_convocatoria).first()
+            convocatoria_nombre = convocatoria.nombre if convocatoria else None
+        
+        asignacion = db.query(Asignacion).filter(Asignacion.id_caso == id_caso).first()
+        tutor = "Sin asignar"
+        
+        if asignacion:
+            tutor = db.query(Usuario).filter(Usuario.id_usuario == asignacion.id_tutor).first()
+            tutor = f"{tutor.nombre} {tutor.apellido}" if tutor else None
+        
+        # Armar el dict personalizado
+        custom_caso = {
+            "id_caso": caso.id_caso,
+            "nombre_caso": caso.nombre_caso,
+            "descripcion": caso.descripcion,
+            "fecha_creacion": caso.fecha_creacion,
+            "estado": estado_nombre,
+            "emprendedor": emprendedor_nombre,
+            "convocatoria": convocatoria_nombre,
+            "consentimiento_datos": caso.consentimiento_datos,
+            "datos_chatbot": caso.datos_chatbot, 
+            "tutor": tutor
+        }
+        casos_transformados.append(custom_caso)
+    
+    return {"casos": casos_transformados}
 
 
 # ============================================================================
@@ -79,6 +133,10 @@ def obtener_caso(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Caso {caso_id} no encontrado"
         )
+        
+    id_estado = caso.id_estado if caso else None
+    id_emprendedor = caso.id_emprendedor if caso else None
+    id_convocatoria = caso.id_convocatoria if caso else None
     
     # Si es Tutor, verificar que esté asignado al caso
     if current_user.rol.nombre_rol == "Tutor":
@@ -94,6 +152,32 @@ def obtener_caso(
             )
     
     return caso
+
+    if id_estado:
+        estado = db.query(CatalogoEstados).filter(CatalogoEstados.id_estado == id_estado).first()
+        caso.id_estado = estado.nombre_estado if estado else None
+    
+    if id_emprendedor:
+        emprendedor = db.query(Usuario).filter(Usuario.id_usuario == id_emprendedor).first()
+        caso.id_emprendedor = f"{emprendedor.nombre} {emprendedor.apellido}" if emprendedor else None   
+    
+    if id_convocatoria:
+        convocatoria = db.query(Convocatoria).filter(Convocatoria.id_convocatoria == id_convocatoria).first()
+        caso.id_convocatoria = convocatoria.nombre if convocatoria else None
+    
+    apoyo = db.query(Apoyo).filter(Apoyo.id_caso == caso_id).first()
+    
+    if apoyo:
+        programa = db.query(Programa).filter(Programa.id_programa == apoyo.id_programa).first()
+        if programa:
+            apoyo = programa.nombre  
+    else:
+        apoyo = "Sin apoyo asignado"     
+    
+    custom_case = {"fecha_creacion": caso.fecha_creacion, "id_caso": caso.id_caso,"descripcion": caso.descripcion, "estado": caso.id_estado, "emprendedor": caso.id_emprendedor, "convocatoria": caso.id_convocatoria, "consentimiento_datos": caso.consentimiento_datos, "nombre_caso": caso.nombre_caso, "datos_chatbot": caso.datos_chatbot, "programa_apoyo": apoyo} # agregar tutor
+    
+    return custom_case
+
 
 
 # ============================================================================
