@@ -9,6 +9,7 @@ from app.models.usuario import Usuario
 from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse
 from app.core.security import get_current_user, require_role
 from app.services.auditoria_service import registrar_auditoria_caso
+from app.models.asignacion import Asignacion
 
 router = APIRouter()
 
@@ -24,8 +25,8 @@ def listar_casos(
     tipo_caso: str = None,
     nombre_estado: str = None,
     id_emprendedor: int = None,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
     Listar todos los casos
@@ -33,6 +34,13 @@ def listar_casos(
     URL: GET /api/v1/caso?skip=0&limit=100
     """
     query = db.query(Caso)
+
+    # Si es Tutor, filtrar solo casos asignados
+    if current_user.rol.nombre_rol == "Tutor":
+        query = query.join(Asignacion).filter(
+            Asignacion.id_usuario == current_user.id_usuario
+        )
+
     if tipo_caso:
         query = query.join(CatalogoEstados).filter(CatalogoEstados.tipo_caso == tipo_caso)
     if nombre_estado:
@@ -51,11 +59,16 @@ def listar_casos(
 @router.get("/{caso_id}")
 def obtener_caso(
     caso_id: int,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
     Obtener un caso específico por ID
+    
+    Permisos:
+    - Admin: Puede ver cualquier caso
+    - Coordinador: Puede ver cualquier caso
+    - Tutor: Solo puede ver casos asignados a él
     
     URL: GET /api/v1/casos/5
     """
@@ -67,6 +80,19 @@ def obtener_caso(
             detail=f"Caso {caso_id} no encontrado"
         )
     
+    # Si es Tutor, verificar que esté asignado al caso
+    if current_user.rol.nombre_rol == "Tutor":
+        asignacion = db.query(Asignacion).filter(
+            Asignacion.id_caso == caso_id,
+            Asignacion.id_usuario == current_user.id_usuario
+        ).first()
+        
+        if not asignacion:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes acceso a este caso"
+            )
+    
     return caso
 
 
@@ -76,11 +102,16 @@ def obtener_caso(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def crear_caso(
     caso_data: CasoCreate,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
     """
     Crear un nuevo caso
+    
+    Permisos:
+    - Admin: Puede crear casos
+    - Coordinador: Puede crear casos
+    - Tutor: NO puede crear casos
     
     URL: POST /api/v1/casos
     
@@ -95,11 +126,10 @@ def crear_caso(
     db.flush()  # Para obtener el id_caso antes del commit
     
     # Auditoría: Caso creado
-    # TODO: Cuando se active JWT, usar current_user.id_usuario
     registrar_auditoria_caso(
         db=db,
         accion="Caso creado",
-        id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+        id_usuario=current_user.id_usuario,
         id_caso=nuevo_caso.id_caso,
         valor_nuevo=f"Caso '{nuevo_caso.nombre_caso}' creado"
     )
@@ -116,11 +146,16 @@ def crear_caso(
 def actualizar_caso(
     caso_id: int,
     caso_data: CasoUpdate,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
-    Actualizar un recurso existente
+    Actualizar un caso existente
+    
+    Permisos:
+    - Admin: Puede actualizar cualquier caso
+    - Coordinador: Puede actualizar cualquier caso
+    - Tutor: Solo puede actualizar casos asignados a él
     
     URL: PUT /api/v1/casos/5
     """
@@ -128,6 +163,19 @@ def actualizar_caso(
     
     if not caso:
         raise HTTPException(status_code=404, detail="Caso no encontrado")
+    
+    # Si es Tutor, verificar que esté asignado al caso
+    if current_user.rol.nombre_rol == "Tutor":
+        asignacion = db.query(Asignacion).filter(
+            Asignacion.id_caso == caso_id,
+            Asignacion.id_usuario == current_user.id_usuario
+        ).first()
+        
+        if not asignacion:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes acceso a este caso"
+            )
     
     # Guardar valores anteriores para auditoría
     valores_anteriores = {}
@@ -139,11 +187,10 @@ def actualizar_caso(
     
     # Auditoría: Caso actualizado
     if valores_anteriores:
-        # TODO: Cuando se active JWT, usar current_user.id_usuario
         registrar_auditoria_caso(
             db=db,
             accion="Caso actualizado",
-            id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+            id_usuario=current_user.id_usuario,
             id_caso=caso_id,
             valor_anterior=str(valores_anteriores),
             valor_nuevo=str(update_data)
@@ -194,11 +241,16 @@ def cambiar_estado_caso(
     caso_id: int,
     nombre_estado: str,  # "En Revisión", "Aprobado", etc
     tipo_caso: str,      # "Postulacion" o "Proyecto"
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador"]))
 ):
     """
     Cambiar el estado de un caso
+    
+    Permisos:
+    - Admin: Puede cambiar estado de cualquier caso
+    - Coordinador: Puede cambiar estado de cualquier caso
+    - Tutor: NO puede cambiar estados
     
     URL: PUT /api/v1/casos/5/cambiar_estado?nombre_estado=Aprobado&tipo_caso=Proyecto
     """
@@ -225,11 +277,10 @@ def cambiar_estado_caso(
     caso.id_estado = estado_catalogo.id_estado
     
     # Auditoría: Cambio de estado (CRÍTICO)
-    # TODO: Cuando se active JWT, usar current_user.id_usuario
     registrar_auditoria_caso(
         db=db,
         accion="Cambio de estado",
-        id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+        id_usuario=current_user.id_usuario,
         id_caso=caso_id,
         valor_anterior=f"{estado_anterior.nombre_estado} ({estado_anterior.tipo_caso})" if estado_anterior else None,
         valor_nuevo=f"{nombre_estado} ({tipo_caso})"

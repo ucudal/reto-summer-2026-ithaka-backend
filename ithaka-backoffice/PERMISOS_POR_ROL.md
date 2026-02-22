@@ -60,7 +60,7 @@ El sistema Ithaka maneja 3 roles principales de usuario:
 |----------|:-----:|:-----------:|:-----:|-------------|
 | `GET /api/v1/casos` | ✅ | ✅ | ✅² | Listar casos (²solo asignados) |
 | `GET /api/v1/casos/{id}` | ✅ | ✅ | ✅² | Ver caso específico (²si está asignado) |
-| `POST /api/v1/casos` | ✅ | ✅ | ❌ | Crear nuevo caso |
+| `POST /api/v1/casos` | ✅ | ❌ | ❌ | Crear nuevo caso |
 | `PUT /api/v1/casos/{id}` | ✅ | ✅ | ✅² | Actualizar caso (²solo casos asignados) |
 | `DELETE /api/v1/casos/{id}` | ✅ | ❌ | ❌ | Eliminar caso |
 | `GET /api/v1/casos/{id}/historial` | ✅ | ✅ | ✅² | Ver historial completo (²si está asignado) |
