@@ -1,5 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -195,18 +196,33 @@ def crear_caso(
     
     Permisos:
     - Admin: Puede crear casos
-    - Coordinador: Puede crear casos
-    - Tutor: NO puede crear casos
-    
+
+    Comportamiento:
+    - El estado se fuerza siempre a "Postulado" (tipo Postulacion),
+      ignorando cualquier id_estado enviado en el payload.
+
     URL: POST /api/v1/casos
-    
-    Body ejemplo:
-    {
-        "campo1": "valor1",
-        "campo2": "valor2"
-    }
     """
-    nuevo_caso = Caso(**caso_data.model_dump())
+    estado_postulado = db.query(CatalogoEstados).filter(
+        func.lower(CatalogoEstados.nombre_estado) == "postulado",
+        func.lower(CatalogoEstados.tipo_caso) == "postulacion"
+    ).first()
+
+    if not estado_postulado:
+        estado_postulado = db.query(CatalogoEstados).filter(
+            func.lower(CatalogoEstados.nombre_estado) == "postulado"
+        ).first()
+
+    if not estado_postulado:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="No existe el estado por defecto 'Postulado'. Configura catalogo_estados."
+        )
+
+    nuevo_caso = Caso(
+        **caso_data.model_dump(exclude={"id_estado"}),
+        id_estado=estado_postulado.id_estado
+    )
     db.add(nuevo_caso)
     db.flush()  # Para obtener el id_caso antes del commit
     

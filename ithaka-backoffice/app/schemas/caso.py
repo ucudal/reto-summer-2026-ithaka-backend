@@ -50,8 +50,11 @@ class CasoBase(BaseModel):
 
 
 class CasoCreate(CasoBase):
-    """Schema para crear caso (POST)"""
-    pass
+    """Schema para crear caso (POST). El backend asigna estado Postulado automáticamente."""
+    id_estado: Optional[int] = Field(
+        None,
+        description="Ignorado en creación: el backend siempre asigna el estado Postulado"
+    )
 
 
 class CasoUpdate(BaseModel):
