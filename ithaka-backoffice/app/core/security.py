@@ -222,6 +222,7 @@ def require_role(allowed_roles: list[str]):
         # Verificar si el rol está en la lista de roles permitidos
         if rol_nombre not in allowed_roles:
             raise HTTPException(
+                
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Acceso denegado. Se requiere rol: {', '.join(allowed_roles)}. Tu rol: {rol_nombre}"
             )

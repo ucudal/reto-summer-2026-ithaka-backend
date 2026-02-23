@@ -5,9 +5,11 @@ from sqlalchemy.orm import Session
 # Imports de tu aplicación
 from app.api.deps import get_db
 from app.models import Emprendedor
+from app.models.caso import Caso
+from app.models.asignacion import Asignacion
 from app.models.usuario import Usuario
 from app.schemas.emprendedor import EmprendedorCreate, EmprendedorUpdate, EmprendedorResponse
-from app.core.security import get_current_user, require_role
+from app.core.security import require_role
 
 
 router = APIRouter()
@@ -17,10 +19,22 @@ router = APIRouter()
 def listar_emprendedores(
     skip: int = 0,             
     limit: int = 100,           
-    db: Session = Depends(get_db)  
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-   
-    emprendedores = db.query(Emprendedor).offset(skip).limit(limit).all()
+    """Listar emprendedores (Tutor solo ve emprendedores de casos asignados)"""
+    
+    # Si es Tutor, filtrar solo emprendedores de casos asignados
+    if current_user.rol.nombre_rol == "Tutor":
+        emprendedores = db.query(Emprendedor).join(
+            Caso, Emprendedor.id_emprendedor == Caso.id_emprendedor
+        ).join(
+            Asignacion, Caso.id_caso == Asignacion.id_caso
+        ).filter(
+            Asignacion.id_usuario == current_user.id_usuario
+        ).offset(skip).limit(limit).all()
+    else:
+        emprendedores = db.query(Emprendedor).offset(skip).limit(limit).all()
     
     return emprendedores
  
@@ -28,10 +42,11 @@ def listar_emprendedores(
 @router.get("/{emprendedor_id}", status_code=status.HTTP_200_OK)
 def obtener_emprendedor(
     emprendedor_id: int,  
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-  
+    """Obtener emprendedor (Tutor solo si tiene caso asignado)"""
+    
     emprendedor = db.query(Emprendedor).filter(
         Emprendedor.id_emprendedor == emprendedor_id
     ).first()
@@ -42,15 +57,32 @@ def obtener_emprendedor(
             detail=f"Emprendedor con ID {emprendedor_id} no encontrado"
         )
     
+    # Si es Tutor, verificar que tenga un caso asignado con este emprendedor
+    if current_user.rol.nombre_rol == "Tutor":
+        tiene_acceso = db.query(Asignacion).join(
+            Caso, Asignacion.id_caso == Caso.id_caso
+        ).filter(
+            Caso.id_emprendedor == emprendedor_id,
+            Asignacion.id_usuario == current_user.id_usuario
+        ).first()
+        
+        if not tiene_acceso:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes acceso a este emprendedor"
+            )
+    
     return emprendedor
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def crear_emprendedor(
     emprendedor_data: EmprendedorCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
-   
+    """Crear emprendedor (Solo Admin)"""
+    
     nuevo_emprendedor = Emprendedor(**emprendedor_data.model_dump())
     db.add(nuevo_emprendedor)
     db.commit()
@@ -62,10 +94,11 @@ def crear_emprendedor(
 def actualizar_emprendedor(
     emprendedor_id: int,
     emprendedor_data: EmprendedorUpdate,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
-   
+    """Actualizar emprendedor (Solo Admin)"""
+    
     emprendedor = db.query(Emprendedor).filter(
         Emprendedor.id_emprendedor == emprendedor_id
     ).first()

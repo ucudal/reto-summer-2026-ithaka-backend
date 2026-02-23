@@ -15,8 +15,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.core.security import require_role
 from app.models.rol import Rol
+from app.models.usuario import Usuario
 from app.schemas.rol import RolCreate, RolUpdate, RolResponse
+from app.services.auditoria_service import registrar_auditoria_general
 
 router = APIRouter()
 
@@ -25,9 +28,10 @@ router = APIRouter()
 def listar_roles(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
-    """Listar todos los roles del sistema"""
+    """Listar todos los roles del sistema (Solo Admin)"""
     roles = db.query(Rol).offset(skip).limit(limit).all()
     return roles
 
@@ -35,9 +39,10 @@ def listar_roles(
 @router.get("/{rol_id}", response_model=RolResponse)
 def obtener_rol(
     rol_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
-    """Obtener un rol específico por ID"""
+    """Obtener un rol específico por ID (Solo Admin)"""
     rol = db.query(Rol).filter(Rol.id_rol == rol_id).first()
     
     if not rol:
@@ -52,10 +57,11 @@ def obtener_rol(
 @router.post("/", response_model=RolResponse, status_code=status.HTTP_201_CREATED)
 def crear_rol(
     rol_data: RolCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
     """
-    Crear un nuevo rol
+    Crear un nuevo rol (Solo Admin)
     
     El nombre del rol debe ser único.
     """
@@ -72,6 +78,14 @@ def crear_rol(
     db.commit()
     db.refresh(nuevo_rol)
     
+    # Registrar en auditoría
+    registrar_auditoria_general(
+        db=db,
+        id_usuario=current_user.id_usuario,
+        accion=f"Creó el rol '{nuevo_rol.nombre_rol}'",
+        valor_nuevo=nuevo_rol.nombre_rol
+    )
+    
     return nuevo_rol
 
 
@@ -79,9 +93,10 @@ def crear_rol(
 def actualizar_rol(
     rol_id: int,
     rol_data: RolUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
-    """Actualizar un rol existente"""
+    """Actualizar un rol existente (Solo Admin)"""
     rol = db.query(Rol).filter(Rol.id_rol == rol_id).first()
     
     if not rol:
@@ -106,16 +121,25 @@ def actualizar_rol(
     db.commit()
     db.refresh(rol)
     
+    # Registrar en auditoría
+    registrar_auditoria_general(
+        db=db,
+        id_usuario=current_user.id_usuario,
+        accion=f"Actualizó el rol '{rol.nombre_rol}'",
+        valor_nuevo=update_data
+    )
+    
     return rol
 
 
 @router.delete("/{rol_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_rol(
     rol_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
     """
-    Eliminar un rol
+    Eliminar un rol (Solo Admin)
     
     ADVERTENCIA: Solo se puede eliminar si no hay usuarios asignados a este rol.
     """
@@ -136,6 +160,14 @@ def eliminar_rol(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"No se puede eliminar el rol. Hay {usuarios_con_rol} usuario(s) asignado(s) a este rol."
         )
+    
+    # Registrar en auditoría antes de eliminar
+    registrar_auditoria_general(
+        db=db,
+        id_usuario=current_user.id_usuario,
+        accion=f"Eliminó el rol '{rol.nombre_rol}'",
+        valor_anterior=rol.nombre_rol
+    )
     
     db.delete(rol)
     db.commit()

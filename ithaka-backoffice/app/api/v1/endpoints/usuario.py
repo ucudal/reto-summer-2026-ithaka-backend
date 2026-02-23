@@ -41,10 +41,17 @@ router = APIRouter()
 def listar_usuarios(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-    """Listar todos los usuarios activos (solo admin)"""
+    """
+    Listar todos los usuarios activos
+    
+    Permisos:
+    - Admin: Puede ver todos los usuarios
+    - Coordinador: Puede ver todos los usuarios
+    - Tutor: NO puede listar usuarios
+    """
     usuarios = db.query(Usuario).filter(
         Usuario.activo == True
     ).offset(skip).limit(limit).all()
@@ -56,17 +63,10 @@ def listar_usuarios(
 @router.get("/{usuario_id}", response_model=UsuarioResponse, status_code=status.HTTP_200_OK)
 def obtener_usuario(
     usuario_id: int,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-    """Obtener un usuario por ID (propio perfil o admin)"""
-    # Verificar permisos: solo puede ver su propio perfil o ser admin
-    # if current_user.id_usuario != usuario_id and current_user.rol.nombre_rol != "admin":  # TEMPORALMENTE DESACTIVADO - JWT
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="No tienes permisos para ver este usuario"
-    #     )
-    
+
     usuario = db.query(Usuario).filter(Usuario.id_usuario == usuario_id).first()
     
     if not usuario:
@@ -87,10 +87,17 @@ def crear_usuario(
     email: str,
     password: str,
     id_rol: int,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
-    """Crear nuevo usuario (solo admin)"""
+    """
+    Crear nuevo usuario
+    
+    Permisos:
+    - Admin: Puede crear usuarios
+    - Coordinador: NO puede crear usuarios
+    - Tutor: NO puede crear usuarios
+    """
     # Verificar que el rol existe
     rol = db.query(Rol).filter(Rol.id_rol == id_rol).first()
     if not rol:
@@ -133,16 +140,23 @@ def actualizar_usuario(
     email: str = None,
     password: str = None,
     id_rol: int = None,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(get_current_user)  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-    """Actualizar usuario (propio perfil o admin)"""
-    # Verificar permisos
-    # if current_user.id_usuario != usuario_id and current_user.rol.nombre_rol != "admin":  # TEMPORALMENTE DESACTIVADO - JWT
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="No tienes permisos para actualizar este usuario"
-    #     )
+    """
+    Actualizar usuario
+    
+    Permisos:
+    - Admin: Puede actualizar cualquier usuario
+    - Coordinador: Solo puede actualizar su propio perfil
+    - Tutor: Solo puede actualizar su propio perfil
+    """
+    # Si no es Admin, solo puede actualizar su propio perfil
+    if current_user.rol.nombre_rol != "Admin" and current_user.id_usuario != usuario_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para actualizar este usuario"
+        )
     
     usuario = db.query(Usuario).filter(Usuario.id_usuario == usuario_id).first()
     
@@ -173,11 +187,11 @@ def actualizar_usuario(
         usuario.password_hash = hash_password(password)
     if id_rol:
         # Solo admin puede cambiar roles
-        # if current_user.rol.nombre_rol != "admin":  # TEMPORALMENTE DESACTIVADO - JWT
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail="Solo admin puede cambiar roles"
-        #     )
+        if current_user.rol.nombre_rol != "Admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo admin puede cambiar roles"
+            )
         rol = db.query(Rol).filter(Rol.id_rol == id_rol).first()
         if not rol:
             raise HTTPException(
@@ -196,11 +210,16 @@ def actualizar_usuario(
 @router.delete("/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT)
 def desactivar_usuario(
     usuario_id: int,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
     """
-    Desactivar usuario (soft delete, solo admin)
+    Desactivar usuario (soft delete)
+    
+    Permisos:
+    - Admin: Puede desactivar usuarios
+    - Coordinador: NO puede desactivar usuarios
+    - Tutor: NO puede desactivar usuarios
     
     Los usuarios NO se eliminan físicamente para preservar el historial
     de auditorías, asignaciones y notas. En su lugar, se marcan como inactivos.
@@ -214,11 +233,11 @@ def desactivar_usuario(
         )
     
     # No permitir desactivarse a sí mismo
-    # if usuario.id_usuario == current_user.id_usuario:  # TEMPORALMENTE DESACTIVADO - JWT
-    #     raise HTTPException(
-    #         status_code=status.HTTP_400_BAD_REQUEST,
-    #         detail="No puedes desactivar tu propio usuario"
-    #     )
+    if usuario.id_usuario == current_user.id_usuario:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes desactivar tu propio usuario"
+        )
     
     if not usuario.activo:
         raise HTTPException(
@@ -231,7 +250,7 @@ def desactivar_usuario(
     registrar_auditoria_general(
         db=db,
         accion="Usuario desactivado",
-        id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+        id_usuario=current_user.id_usuario,
         valor_anterior=f"Usuario '{usuario.nombre} {usuario.apellido or ''}' (activo=True)",
         valor_nuevo=f"Usuario '{usuario.nombre} {usuario.apellido or ''}' (activo=False)"
     )
@@ -248,11 +267,16 @@ def desactivar_usuario(
 @router.put("/{usuario_id}/reactivar", response_model=UsuarioResponse, status_code=status.HTTP_200_OK)
 def reactivar_usuario(
     usuario_id: int,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
     """
-    Reactivar usuario previamente desactivado (solo admin)
+    Reactivar usuario previamente desactivado
+    
+    Permisos:
+    - Admin: Puede reactivar usuarios
+    - Coordinador: NO puede reactivar usuarios
+    - Tutor: NO puede reactivar usuarios
     """
     usuario = db.query(Usuario).filter(Usuario.id_usuario == usuario_id).first()
     
@@ -273,7 +297,7 @@ def reactivar_usuario(
     registrar_auditoria_general(
         db=db,
         accion="Usuario reactivado",
-        id_usuario=1,  # TEMPORAL: Reemplazar con current_user.id_usuario
+        id_usuario=current_user.id_usuario,
         valor_anterior=f"Usuario '{usuario.nombre} {usuario.apellido or ''}' (activo=False)",
         valor_nuevo=f"Usuario '{usuario.nombre} {usuario.apellido or ''}' (activo=True)"
     )
