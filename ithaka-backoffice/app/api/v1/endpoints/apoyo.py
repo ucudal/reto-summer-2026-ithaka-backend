@@ -20,9 +20,12 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models.apoyo import Apoyo
 from app.models.caso import Caso
+from app.models.asignacion import Asignacion
 from app.models.programa import Programa
+from app.models.usuario import Usuario
 from app.schemas.apoyo import ApoyoCreate, ApoyoUpdate, ApoyoResponse
 from app.services.auditoria_service import registrar_auditoria_caso
+from app.core.security import require_role
 
 router = APIRouter()
 
@@ -32,16 +35,25 @@ def listar_apoyos(
     limit: int = 100,
     id_caso: Optional[int] = None,
     id_programa: Optional[int] = None,
-    db: Session = Depends(get_db)  
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
-    Listar todos los apoyos otorgados
+    Listar todos los apoyos otorgados (Tutor solo ve apoyos de casos asignados)
     
     Filtros opcionales:
     - id_caso: Ver apoyos de un caso específico
     - id_programa: Ver apoyos de un programa específico
     """
     query = db.query(Apoyo)
+    
+    # Si es Tutor, filtrar por casos asignados
+    if current_user.rol.nombre_rol == "Tutor":
+        query = query.join(
+            Asignacion, Apoyo.id_caso == Asignacion.id_caso
+        ).filter(
+            Asignacion.id_usuario == current_user.id_usuario
+        )
     
     if id_caso:
         query = query.filter(Apoyo.id_caso == id_caso)
@@ -56,9 +68,10 @@ def listar_apoyos(
 @router.get("/{apoyo_id}", status_code=status.HTTP_200_OK)
 def obtener_apoyo(
     apoyo_id: int,  
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-    """Obtener un apoyo específico por ID"""
+    """Obtener un apoyo específico por ID (Tutor solo si es de caso asignado)"""
     apoyo = db.query(Apoyo).filter(
         Apoyo.id_apoyo == apoyo_id
     ).first()
@@ -69,15 +82,29 @@ def obtener_apoyo(
             detail=f"Apoyo con ID {apoyo_id} no encontrado"
         )
     
+    # Si es Tutor, verificar que el caso esté asignado
+    if current_user.rol.nombre_rol == "Tutor":
+        asignacion = db.query(Asignacion).filter(
+            Asignacion.id_caso == apoyo.id_caso,
+            Asignacion.id_usuario == current_user.id_usuario
+        ).first()
+        
+        if not asignacion:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes acceso a este apoyo"
+            )
+    
     return apoyo
 
 
 @router.get("/caso/{id_caso}", response_model=list[ApoyoResponse])
 def listar_apoyos_por_caso(
     id_caso: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-    """Listar todos los apoyos otorgados a un caso específico"""
+    """Listar todos los apoyos otorgados a un caso específico (Tutor solo si está asignado)"""
     # Verificar que el caso existe
     caso = db.query(Caso).filter(Caso.id_caso == id_caso).first()
     if not caso:
@@ -85,6 +112,19 @@ def listar_apoyos_por_caso(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Caso con ID {id_caso} no encontrado"
         )
+    
+    # Si es Tutor, verificar que el caso esté asignado
+    if current_user.rol.nombre_rol == "Tutor":
+        asignacion = db.query(Asignacion).filter(
+            Asignacion.id_caso == id_caso,
+            Asignacion.id_usuario == current_user.id_usuario
+        ).first()
+        
+        if not asignacion:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes acceso a este caso"
+            )
     
     apoyos = db.query(Apoyo).filter(
         Apoyo.id_caso == id_caso
@@ -95,10 +135,11 @@ def listar_apoyos_por_caso(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def crear_apoyo(
     apoyo_data: ApoyoCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador"]))
 ):
     """
-    Crear un nuevo apoyo (asignar apoyo a un caso)
+    Crear un nuevo apoyo (asignar apoyo a un caso) - Admin y Coordinador
     
     Registra auditoría automáticamente.
     """
@@ -155,8 +196,10 @@ def crear_apoyo(
 def actualizar_apoyo(
     apoyo_id: int,
     apoyo_data: ApoyoUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador"]))
 ):
+    """Actualizar apoyo (Admin y Coordinador)"""
    
     apoyo = db.query(Apoyo).filter(
         Apoyo.id_apoyo == apoyo_id
@@ -178,8 +221,10 @@ def actualizar_apoyo(
 @router.delete("/{apoyo_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_apoyo(
     apoyo_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador"]))
 ):
+    """Eliminar apoyo (Admin y Coordinador)"""
     apoyo = db.query(Apoyo).filter(
         Apoyo.id_apoyo == apoyo_id
     ).first()

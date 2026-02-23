@@ -42,7 +42,7 @@ def listar_usuarios(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador"]))
 ):
     """
     Listar todos los usuarios activos
@@ -66,7 +66,13 @@ def obtener_usuario(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-
+    # Si es Tutor, solo puede ver su propio perfil
+    if current_user.rol.nombre_rol == "Tutor" and current_user.id_usuario != usuario_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para ver este usuario"
+        )
+    
     usuario = db.query(Usuario).filter(Usuario.id_usuario == usuario_id).first()
     
     if not usuario:
@@ -82,11 +88,7 @@ def obtener_usuario(
 # ============================================================================
 @router.post("/", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
 def crear_usuario(
-    nombre: str,
-    apellido: str,
-    email: str,
-    password: str,
-    id_rol: int,
+    usuario_data: UsuarioCreate,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(["Admin"]))
 ):
@@ -99,7 +101,7 @@ def crear_usuario(
     - Tutor: NO puede crear usuarios
     """
     # Verificar que el rol existe
-    rol = db.query(Rol).filter(Rol.id_rol == id_rol).first()
+    rol = db.query(Rol).filter(Rol.id_rol == usuario_data.id_rol).first()
     if not rol:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -107,7 +109,7 @@ def crear_usuario(
         )
     
     # Verificar que el email no exista
-    usuario_existente = db.query(Usuario).filter(Usuario.email == email).first()
+    usuario_existente = db.query(Usuario).filter(Usuario.email == usuario_data.email).first()
     if usuario_existente:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -115,15 +117,26 @@ def crear_usuario(
         )
     
     nuevo_usuario = Usuario(
-        nombre=nombre,
-        apellido=apellido,
-        email=email,
-        password_hash=hash_password(password),
-        id_rol=id_rol,
+        nombre=usuario_data.nombre,
+        apellido=usuario_data.apellido,
+        email=usuario_data.email,
+        password_hash=hash_password(usuario_data.password),
+        id_rol=usuario_data.id_rol,
         activo=True
     )
     
     db.add(nuevo_usuario)
+    db.flush()  # Obtener id antes del commit
+    
+    # Auditoría: Usuario creado
+    from app.services.auditoria_service import registrar_auditoria_general
+    registrar_auditoria_general(
+        db=db,
+        accion="Usuario creado",
+        id_usuario=current_user.id_usuario,
+        valor_nuevo=f"Usuario '{nuevo_usuario.nombre} {nuevo_usuario.apellido or ''}' creado (email={nuevo_usuario.email}, rol={rol.nombre_rol})"
+    )
+    
     db.commit()
     db.refresh(nuevo_usuario)
     
@@ -135,11 +148,7 @@ def crear_usuario(
 @router.put("/{usuario_id}", response_model=UsuarioResponse, status_code=status.HTTP_200_OK)
 def actualizar_usuario(
     usuario_id: int,
-    nombre: str = None,
-    apellido: str = None,
-    email: str = None,
-    password: str = None,
-    id_rol: int = None,
+    usuario_data: UsuarioUpdate,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
@@ -167,14 +176,14 @@ def actualizar_usuario(
         )
     
     # Actualizar campos
-    if nombre:
-        usuario.nombre = nombre
-    if apellido:
-        usuario.apellido = apellido
-    if email:
+    if usuario_data.nombre:
+        usuario.nombre = usuario_data.nombre
+    if usuario_data.apellido:
+        usuario.apellido = usuario_data.apellido
+    if usuario_data.email:
         # Verificar que el email no esté en uso
         email_existente = db.query(Usuario).filter(
-            Usuario.email == email,
+            Usuario.email == usuario_data.email,
             Usuario.id_usuario != usuario_id
         ).first()
         if email_existente:
@@ -182,23 +191,25 @@ def actualizar_usuario(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email ya está en uso"
             )
-        usuario.email = email
-    if password:
-        usuario.password_hash = hash_password(password)
-    if id_rol:
+        usuario.email = usuario_data.email
+    if usuario_data.password:
+        usuario.password_hash = hash_password(usuario_data.password)
+    if usuario_data.activo is not None:
+        usuario.activo = usuario_data.activo
+    if usuario_data.id_rol:
         # Solo admin puede cambiar roles
         if current_user.rol.nombre_rol != "Admin":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Solo admin puede cambiar roles"
             )
-        rol = db.query(Rol).filter(Rol.id_rol == id_rol).first()
+        rol = db.query(Rol).filter(Rol.id_rol == usuario_data.id_rol).first()
         if not rol:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Rol inválido"
             )
-        usuario.id_rol = id_rol
+        usuario.id_rol = usuario_data.id_rol
     
     db.commit()
     db.refresh(usuario)
