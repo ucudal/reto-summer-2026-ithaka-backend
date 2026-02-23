@@ -28,11 +28,6 @@ class CasoBase(BaseModel):
         description="Datos capturados por el chatbot en formato JSON"
     )
     
-    consentimiento_datos: bool = Field(
-        False,
-        description="Indica si el emprendedor dio consentimiento para usar sus datos"
-    )
-    
     id_emprendedor: int = Field(
         ...,
         description="ID del emprendedor que presenta el caso"
@@ -50,8 +45,11 @@ class CasoBase(BaseModel):
 
 
 class CasoCreate(CasoBase):
-    """Schema para crear caso (POST)"""
-    pass
+    """Schema para crear caso (POST). El backend asigna estado Postulado automáticamente."""
+    id_estado: Optional[int] = Field(
+        None,
+        description="Ignorado en creación: el backend siempre asigna el estado Postulado"
+    )
 
 
 class CasoUpdate(BaseModel):
@@ -59,7 +57,6 @@ class CasoUpdate(BaseModel):
     nombre_caso: Optional[str] = Field(None, max_length=200)
     descripcion: Optional[str] = None
     datos_chatbot: Optional[dict[str, Any]] = None
-    consentimiento_datos: Optional[bool] = None
     id_emprendedor: Optional[int] = None
     id_convocatoria: Optional[int] = None
     id_estado: Optional[int] = None

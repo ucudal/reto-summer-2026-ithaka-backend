@@ -15,9 +15,10 @@ def listar_estados(
     skip: int = 0,
     limit: int = 100,
     tipo_caso: str = None,  # Filtrar por tipo: "Postulacion" o "Proyecto"
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-    """Listar todos los estados"""
+    """Listar todos los estados (todos los roles)"""
     query = db.query(CatalogoEstados)
     
     if tipo_caso:
@@ -30,9 +31,10 @@ def listar_estados(
 @router.get("/{estado_id}", status_code=status.HTTP_200_OK, response_model=CatalogoEstadosResponse)
 def obtener_estado(
     estado_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-    """Obtener un estado por ID"""
+    """Obtener un estado por ID (todos los roles)"""
     estado = db.query(CatalogoEstados).filter(
         CatalogoEstados.id_estado == estado_id
     ).first()
@@ -49,9 +51,10 @@ def obtener_estado(
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=CatalogoEstadosResponse)
 def crear_estado(
     estado_data: CatalogoEstadosCreate,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
+    """Crear estado (Solo Admin)"""
     nuevo_estado = CatalogoEstados(**estado_data.model_dump())
     db.add(nuevo_estado)
     db.commit()
@@ -64,9 +67,10 @@ def crear_estado(
 def actualizar_estado(
     estado_id: int,
     estado_data: CatalogoEstadosUpdate,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
+    """Actualizar estado (Solo Admin)"""
     estado = db.query(CatalogoEstados).filter(
         CatalogoEstados.id_estado == estado_id
     ).first()
@@ -89,9 +93,10 @@ def actualizar_estado(
 @router.delete("/{estado_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_estado(
     estado_id: int,
-    db: Session = Depends(get_db)
-    # current_user: Usuario = Depends(require_role(["admin"]))  # TEMPORALMENTE DESACTIVADO - JWT
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin"]))
 ):
+    """Eliminar estado (Solo Admin)"""
     estado = db.query(CatalogoEstados).filter(
         CatalogoEstados.id_estado == estado_id
     ).first()

@@ -1,5 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.database import Base
@@ -23,13 +22,11 @@ class Caso(Base):
     descripcion = Column(Text)
     
     # ========== DATOS DEL CHATBOT ==========
-    # JSONB = tipo especial de PostgreSQL para guardar JSON
+    # JSON = tipo genérico compatible con PostgreSQL (se convierte a JSONB) y SQLite
     # Puede guardar cualquier estructura JSON:
     # {"edad": 25, "sector": "Tecnología", "respuestas": ["a", "b", "c"]}
     # Ejemplo: SELECT * FROM caso WHERE datos_chatbot->>'sector' = 'Tecnología'
-    datos_chatbot = Column(JSONB)
-    
-    consentimiento_datos = Column(Boolean, default=False)
+    datos_chatbot = Column(JSON)
     
     # ========== FOREIGN KEYS ==========
     

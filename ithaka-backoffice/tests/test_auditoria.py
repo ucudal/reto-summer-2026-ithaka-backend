@@ -18,7 +18,6 @@ def test_auditoria_se_crea_al_crear_caso(client, db, headers_admin, emprendedor_
         json={
             "nombre_caso": "Caso de auditoría",
             "id_emprendedor": emprendedor_test.id_emprendedor,
-            "id_estado": estado.id_estado,
             "id_convocatoria": convocatoria.id_convocatoria
         },
         headers=headers_admin

@@ -108,7 +108,6 @@ class TestPermisosCasos:
             json={
                 "nombre_caso": "Caso de prueba",
                 "id_emprendedor": emprendedor_test.id_emprendedor,
-                "id_estado": estado.id_estado,
                 "id_convocatoria": convocatoria.id_convocatoria
             },
             headers=headers_admin
@@ -127,7 +126,6 @@ class TestPermisosCasos:
             json={
                 "nombre_caso": "Caso coordinador",
                 "id_emprendedor": emprendedor_test.id_emprendedor,
-                "id_estado": estado.id_estado,
                 "id_convocatoria": convocatoria.id_convocatoria
             },
             headers=headers_coordinador
@@ -146,7 +144,6 @@ class TestPermisosCasos:
             json={
                 "nombre_caso": "Caso tutor",
                 "id_emprendedor": emprendedor_test.id_emprendedor,
-                "id_estado": estado.id_estado,
                 "id_convocatoria": convocatoria.id_convocatoria
             },
             headers=headers_tutor

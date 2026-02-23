@@ -17,8 +17,11 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.models.nota import Nota
+from app.models.asignacion import Asignacion
+from app.models.usuario import Usuario
 from app.schemas.nota import NotaCreate, NotaUpdate
 from app.services.auditoria_service import registrar_auditoria_caso
+from app.core.security import require_role
 
 router = APIRouter()
 
@@ -29,14 +32,24 @@ def listar_notas(
     limit: int = 100,
     id_caso: Optional[int] = None,
     id_usuario: Optional[int] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
     Listar notas con paginacion y filtros opcionales.
+    Tutor solo ve notas de casos asignados.
 
     URL: GET /api/v1/notas?skip=0&limit=100&id_caso=1&id_usuario=2
     """
     query = db.query(Nota)
+
+    # Si es Tutor, filtrar por casos asignados
+    if current_user.rol.nombre_rol == "Tutor":
+        query = query.join(
+            Asignacion, Nota.id_caso == Asignacion.id_caso
+        ).filter(
+            Asignacion.id_usuario == current_user.id_usuario
+        )
 
     if id_caso is not None:
         query = query.filter(Nota.id_caso == id_caso)
@@ -51,10 +64,12 @@ def listar_notas(
 @router.get("/{nota_id}", status_code=status.HTTP_200_OK)
 def obtener_nota(
     nota_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
     Obtener una nota por ID.
+    Tutor solo si es de caso asignado.
 
     URL: GET /api/v1/notas/5
     """
@@ -66,19 +81,47 @@ def obtener_nota(
             detail=f"Nota con ID {nota_id} no encontrada"
         )
 
+    # Si es Tutor, verificar que el caso esté asignado
+    if current_user.rol.nombre_rol == "Tutor":
+        asignacion = db.query(Asignacion).filter(
+            Asignacion.id_caso == nota.id_caso,
+            Asignacion.id_usuario == current_user.id_usuario
+        ).first()
+        
+        if not asignacion:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes acceso a esta nota"
+            )
+
     return nota
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def crear_nota(
     nota_data: NotaCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
     Crear una nueva nota.
+    Tutor solo puede crear en casos asignados.
 
     URL: POST /api/v1/notas
     """
+    # Si es Tutor, verificar que el caso esté asignado
+    if current_user.rol.nombre_rol == "Tutor":
+        asignacion = db.query(Asignacion).filter(
+            Asignacion.id_caso == nota_data.id_caso,
+            Asignacion.id_usuario == current_user.id_usuario
+        ).first()
+        
+        if not asignacion:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes acceso a este caso"
+            )
+    
     nueva_nota = Nota(**nota_data.model_dump())
     db.add(nueva_nota)
     db.flush()
@@ -106,10 +149,12 @@ def crear_nota(
 def actualizar_nota(
     nota_id: int,
     nota_data: NotaUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
     Actualizar una nota existente.
+    Tutor solo puede actualizar sus propias notas.
 
     URL: PUT /api/v1/notas/5
     """
@@ -120,6 +165,14 @@ def actualizar_nota(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Nota con ID {nota_id} no encontrada"
         )
+
+    # Si es Tutor, solo puede actualizar sus propias notas
+    if current_user.rol.nombre_rol == "Tutor":
+        if nota.id_usuario != current_user.id_usuario:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo puedes actualizar tus propias notas"
+            )
 
     update_data = nota_data.model_dump(exclude_unset=True)
     if not update_data:
@@ -150,10 +203,12 @@ def actualizar_nota(
 @router.delete("/{nota_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_nota(
     nota_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
     Eliminar una nota.
+    Tutor solo puede eliminar sus propias notas.
 
     URL: DELETE /api/v1/notas/5
     """
@@ -164,6 +219,14 @@ def eliminar_nota(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Nota con ID {nota_id} no encontrada"
         )
+
+    # Si es Tutor, solo puede eliminar sus propias notas
+    if current_user.rol.nombre_rol == "Tutor":
+        if nota.id_usuario != current_user.id_usuario:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo puedes eliminar tus propias notas"
+            )
 
     valor_anterior = {
         "id_nota": nota.id_nota,

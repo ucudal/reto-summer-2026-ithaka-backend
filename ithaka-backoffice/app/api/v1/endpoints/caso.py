@@ -1,5 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -87,7 +88,7 @@ def listar_casos(
         tutor = "Sin asignar"
         
         if asignacion:
-            tutor = db.query(Usuario).filter(Usuario.id_usuario == asignacion.id_tutor).first()
+            tutor = db.query(Usuario).filter(Usuario.id_usuario == asignacion.id_usuario).first()
             tutor = f"{tutor.nombre} {tutor.apellido}" if tutor else None
         
         # Armar el dict personalizado
@@ -99,13 +100,12 @@ def listar_casos(
             "estado": estado_nombre,
             "emprendedor": emprendedor_nombre,
             "convocatoria": convocatoria_nombre,
-            "consentimiento_datos": caso.consentimiento_datos,
             "datos_chatbot": caso.datos_chatbot, 
             "tutor": tutor
         }
         casos_transformados.append(custom_caso)
     
-    return {"casos": casos_transformados}
+    return casos_transformados
 
 
 # ============================================================================
@@ -175,7 +175,7 @@ def obtener_caso(
     else:
         apoyo = "Sin apoyo asignado"     
     
-    custom_case = {"fecha_creacion": caso.fecha_creacion, "id_caso": caso.id_caso,"descripcion": caso.descripcion, "estado": caso.id_estado, "emprendedor": caso.id_emprendedor, "convocatoria": caso.id_convocatoria, "consentimiento_datos": caso.consentimiento_datos, "nombre_caso": caso.nombre_caso, "datos_chatbot": caso.datos_chatbot, "programa_apoyo": apoyo} # agregar tutor
+    custom_case = {"fecha_creacion": caso.fecha_creacion, "id_caso": caso.id_caso,"descripcion": caso.descripcion, "estado": caso.id_estado, "emprendedor": caso.id_emprendedor, "convocatoria": caso.id_convocatoria, "nombre_caso": caso.nombre_caso, "datos_chatbot": caso.datos_chatbot, "programa_apoyo": apoyo} # agregar tutor
     
     return custom_case
 
@@ -195,18 +195,46 @@ def crear_caso(
     
     Permisos:
     - Admin: Puede crear casos
-    - Coordinador: Puede crear casos
-    - Tutor: NO puede crear casos
-    
+
+    Comportamiento:
+    - El estado se fuerza siempre a "Postulado" (tipo Postulacion),
+      ignorando cualquier id_estado enviado en el payload.
+
     URL: POST /api/v1/casos
-    
-    Body ejemplo:
-    {
-        "campo1": "valor1",
-        "campo2": "valor2"
-    }
     """
+
+    estado_postulado = db.query(CatalogoEstados).filter(
+        func.lower(CatalogoEstados.nombre_estado) == "postulado",
+        func.lower(CatalogoEstados.tipo_caso) == "postulacion"
+    ).first()
+
+    if not estado_postulado:
+        estado_postulado = db.query(CatalogoEstados).filter(
+            func.lower(CatalogoEstados.nombre_estado) == "postulado"
+        ).first()
+
+    if not estado_postulado:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="No existe el estado por defecto 'Postulado'. Configura catalogo_estados."
+        )
+
+    nuevo_caso = Caso(
+        **caso_data.model_dump(exclude={"id_estado"}),
+        id_estado=estado_postulado.id_estado
+    )
+
+
+    if caso_data.id_emprendedor:
+        emprendedor = db.query(Emprendedor).filter(Emprendedor.id_emprendedor == caso_data.id_emprendedor).first()
+        if not emprendedor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Emprendedor con ID {caso_data.id_emprendedor} no encontrado"
+            )
+
     nuevo_caso = Caso(**caso_data.model_dump())
+
     db.add(nuevo_caso)
     db.flush()  # Para obtener el id_caso antes del commit
     
