@@ -42,7 +42,6 @@ def test_flujo_completo_creacion_caso_y_asignacion(client, db, headers_admin, he
         json={
             "nombre_caso": "Caso Laura Fernández",
             "id_emprendedor": emprendedor_id,
-            "id_estado": estado.id_estado,
             "id_convocatoria": convocatoria.id_convocatoria
         },
         headers=headers_admin
