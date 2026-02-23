@@ -8,7 +8,7 @@
 
 1. [Flujo de Autenticación](#1-flujo-de-autenticación)
 2. [Flujo de Registro desde Chatbot](#2-flujo-de-registro-desde-chatbot)
-3. [Flujo de Creación y Asignación de Caso](#3-flujo-de-creación-y-asignación-de-caso)
+3. [Flujo de Asignación de Caso](#3-flujo-de-asignación-de-caso)
 4. [Flujo de Trabajo del Tutor](#4-flujo-de-trabajo-del-tutor)
 5. [Flujo de Cambio de Estado de Caso](#5-flujo-de-cambio-de-estado-de-caso)
 6. [Flujo de Gestión de Notas](#6-flujo-de-gestión-de-notas)
@@ -100,34 +100,15 @@ sequenceDiagram
 ### 📋 Objetivo
 Crear un nuevo caso en el sistema y asignarlo a uno o más tutores para su seguimiento.
 
-### 👥 Pasos
 
-```mermaid
-graph TD
-    A[Admin/Coord crea caso] --> B[Sistema valida datos]
-    B --> C[Caso guardado en BD]
-    C --> D[Se registra en auditoría]
-    D --> E[Admin/Coord asigna tutor]
-    E --> F[Sistema verifica que sea tutor]
-    F --> G[Se crea asignación]
-    G --> H[Se registra en auditoría]
-    H --> I[Tutor ve caso en su lista]
-```
 
 **Pasos detallados:**
 
-1. Admin o Coordinador identifica necesidad de crear un caso
-2. Selecciona el emprendedor asociado
-3. Ingresa nombre y descripción del caso
-4. Selecciona el estado inicial del caso
-5. Opcionalmente selecciona convocatoria asociada
-6. Sistema guarda el caso en la base de datos
-7. Sistema registra la creación en auditoría
-8. Admin o Coordinador selecciona uno o más tutores
-9. Sistema verifica que los usuarios sean tutores activos
-10. Sistema crea las asignaciones correspondientes
-11. Sistema registra las asignaciones en auditoría
-12. Los tutores asignados ven el caso automáticamente en su lista
+1. Admin, Coordinador o tutor selecciona uno o más tutores
+2. Sistema verifica que los usuarios sean tutores activos
+3. Sistema crea las asignaciones correspondientes
+4. Sistema registra las asignaciones en auditoría
+5. Los tutores asignados ven el caso automáticamente en su lista
 
 **⚠️ Importante:**
 - Un caso puede tener múltiples tutores asignados
@@ -141,22 +122,7 @@ graph TD
 ### 📋 Objetivo
 Acompañar y dar seguimiento a los casos asignados al tutor.
 
-### 📝 Pasos
 
-```mermaid
-graph TD
-    A[Tutor inicia sesión] --> B[Ve lista de casos asignados]
-    B --> C[Selecciona un caso]
-    C --> D[Revisa información del caso]
-    D --> E[Revisa información del emprendedor]
-    E --> F{Necesita agregar información?}
-    F -->|Sí| G[Agrega nota al caso]
-    F -->|No| H{Necesita actualizar datos?}
-    G --> H
-    H -->|Sí| I[Actualiza información del caso]
-    H -->|No| J[Continúa con siguiente caso]
-    I --> J
-```
 
 **Pasos detallados:**
 
@@ -183,28 +149,6 @@ graph TD
 ### 📋 Objetivo
 Gestionar el ciclo de vida de un caso desde la postulación hasta su finalización.
 
-### 🔄 Pasos
-
-```mermaid
-stateDiagram-v2
-    [*] --> Postulado
-    
-    Postulado --> EnEvaluacion: Admin/Coord revisa
-    Postulado --> Rechazado: No cumple requisitos
-    
-    EnEvaluacion --> AprobadoProyecto: Evaluación positiva
-    EnEvaluacion --> Descartado: No es viable
-    
-    AprobadoProyecto --> ProyectoActivo: Inicia proyecto
-    
-    ProyectoActivo --> Completado: Finaliza con éxito
-    ProyectoActivo --> Cerrado: Se cancela
-    
-    Completado --> [*]
-    Cerrado --> [*]
-    Rechazado --> [*]
-    Descartado --> [*]
-```
 
 **Pasos detallados:**
 
@@ -258,23 +202,6 @@ stateDiagram-v2
 ### 📋 Objetivo
 Documentar el progreso, reuniones y decisiones relacionadas con cada caso.
 
-### 📝 Pasos
-
-```mermaid
-sequenceDiagram
-    participant Usuario
-    participant Sistema
-    participant BaseDatos
-    
-    Usuario->>Sistema: 1. Abre caso asignado
-    Sistema->>BaseDatos: 2. Carga notas del caso
-    BaseDatos-->>Sistema: 3. Retorna notas ordenadas
-    Sistema-->>Usuario: 4. Muestra historial de notas
-    Usuario->>Sistema: 5. Crea nueva nota
-    Sistema->>BaseDatos: 6. Guarda nota
-    Sistema->>BaseDatos: 7. Registra en auditoría
-    Sistema-->>Usuario: 8. Confirma nota creada
-```
 
 **Pasos detallados:**
 
@@ -321,19 +248,6 @@ sequenceDiagram
 ### 📋 Objetivo
 Mantener un registro completo y automático de todas las acciones importantes del sistema.
 
-### 📊 Pasos
-
-```mermaid
-graph TD
-    A[Usuario realiza acción] --> B[Sistema ejecuta operación]
-    B --> C{Operación exitosa?}
-    C -->|No| D[Retorna error]
-    C -->|Sí| E[Guarda cambios en BD]
-    E --> F[Servicio de auditoría]
-    F --> G[Registra: acción, usuario, fecha, cambios]
-    G --> H[Guarda en tabla auditoría]
-    H --> I[Continúa proceso normal]
-```
 
 **Pasos detallados:**
 
@@ -392,33 +306,6 @@ graph TD
 ### 📋 Objetivo
 Controlar qué usuarios pueden realizar qué acciones en el sistema según su rol.
 
-### 🔐 Pasos
-
-```mermaid
-graph TD
-    A[Usuario inicia sesión] --> B[Sistema identifica rol]
-    B --> C{Tipo de rol?}
-    
-    C -->|Admin| D[Acceso completo]
-    D --> D1[Gestionar usuarios]
-    D --> D2[Gestionar todos los casos]
-    D --> D3[Cambiar estados]
-    D --> D4[Ver toda la auditoría]
-    D --> D5[Configurar sistema]
-    
-    C -->|Coordinador| E[Acceso operativo]
-    E --> E1[Ver todos los casos]
-    E --> E2[Asignar tutores]
-    E --> E3[Cambiar estados]
-    E --> E4[Ver toda la auditoría]
-    E --> E5[Gestionar notas]
-    
-    C -->|Tutor| F[Acceso limitado]
-    F --> F1[Ver solo casos asignados]
-    F --> F2[Agregar notas]
-    F --> F3[Actualizar casos asignados]
-    F --> F4[Ver su auditoría]
-```
 
 **Pasos detallados:**
 
