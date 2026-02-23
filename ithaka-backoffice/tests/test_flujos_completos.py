@@ -314,3 +314,57 @@ def test_flujo_desactivar_reactivar_usuario(client, db, headers_admin):
     )
     assert response.status_code == 200
     assert response.json()["activo"] == True
+
+
+def test_asignacion_solo_permite_tutores(client, db, headers_admin, caso_test, usuario_coordinador, usuario_admin):
+    """
+    Verificar que solo se pueden asignar tutores a casos.
+    Coordinadores y Admins no pueden ser asignados.
+    """
+    # Intentar asignar coordinador (debe fallar)
+    response = client.post(
+        "/api/v1/asignaciones",
+        json={
+            "id_caso": caso_test.id_caso,
+            "id_usuario": usuario_coordinador.id_usuario
+        },
+        headers=headers_admin
+    )
+    assert response.status_code == 400
+    assert "Tutor" in response.json()["detail"]
+    
+    # Intentar asignar admin (debe fallar)
+    response = client.post(
+        "/api/v1/asignaciones",
+        json={
+            "id_caso": caso_test.id_caso,
+            "id_usuario": usuario_admin.id_usuario
+        },
+        headers=headers_admin
+    )
+    assert response.status_code == 400
+    assert "Tutor" in response.json()["detail"]
+
+
+def test_asignacion_duplicada_no_permitida(client, db, headers_admin, caso_test, usuario_tutor):
+    """
+    Verificar que no se puede asignar el mismo tutor dos veces al mismo caso
+    """
+    from app.models.asignacion import Asignacion
+    
+    # Crear primera asignación
+    asignacion = Asignacion(id_caso=caso_test.id_caso, id_usuario=usuario_tutor.id_usuario)
+    db.add(asignacion)
+    db.commit()
+    
+    # Intentar crear asignación duplicada (debe fallar)
+    response = client.post(
+        "/api/v1/asignaciones",
+        json={
+            "id_caso": caso_test.id_caso,
+            "id_usuario": usuario_tutor.id_usuario
+        },
+        headers=headers_admin
+    )
+    assert response.status_code == 400
+    assert "ya está asignado" in response.json()["detail"]

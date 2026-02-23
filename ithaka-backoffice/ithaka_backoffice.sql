@@ -69,7 +69,6 @@ CREATE TABLE caso (
     nombre_caso VARCHAR(200) NOT NULL,
     descripcion TEXT,
     datos_chatbot JSONB,
-    consentimiento_datos BOOLEAN DEFAULT FALSE,
     id_emprendedor INTEGER NOT NULL,
     id_convocatoria INTEGER,
     id_estado INTEGER NOT NULL,

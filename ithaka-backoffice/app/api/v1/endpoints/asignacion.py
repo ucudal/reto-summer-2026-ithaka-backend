@@ -1,14 +1,14 @@
 """
 Endpoints ASIGNACION
 --------------------
-Gestión de asignaciones de staff a casos.
+Gestión de asignaciones de tutores a casos.
 
 Endpoints:
 - GET /api/v1/asignaciones - Listar todas
 - GET /api/v1/asignaciones/{id} - Obtener una
 - GET /api/v1/asignaciones/caso/{id_caso} - Listar por caso
 - GET /api/v1/asignaciones/usuario/{id_usuario} - Listar por usuario
-- POST /api/v1/asignaciones - Crear (con auditoría)
+- POST /api/v1/asignaciones - Crear (solo tutores, con auditoría)
 - DELETE /api/v1/asignaciones/{id} - Eliminar (con auditoría)
 """
 
@@ -23,6 +23,7 @@ from app.models.usuario import Usuario
 from app.models.caso import Caso
 from app.schemas.asignacion import AsignacionCreate, AsignacionUpdate, AsignacionResponse
 from app.services.auditoria_service import registrar_auditoria_caso
+from app.core.security import require_role
 
 router = APIRouter()
 
@@ -32,10 +33,11 @@ def listar_asignaciones(
     limit: int = 100,
     id_caso: Optional[int] = None,
     id_usuario: Optional[int] = None,
-    db: Session = Depends(get_db)  
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
-    Listar todas las asignaciones
+    Listar todas las asignaciones (todos los roles)
     
     Filtros opcionales:
     - id_caso: Ver asignaciones de un caso específico
@@ -56,9 +58,10 @@ def listar_asignaciones(
 @router.get("/{asignacion_id}", status_code=status.HTTP_200_OK)
 def obtener_asignacion(
     asignacion_id: int,  
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-    """Obtener una asignación específica por ID"""
+    """Obtener una asignación específica por ID (todos los roles)"""
     asignacion = db.query(Asignacion).filter(
         Asignacion.id_asignacion == asignacion_id
     ).first()
@@ -75,9 +78,10 @@ def obtener_asignacion(
 @router.get("/caso/{id_caso}", response_model=list[AsignacionResponse])
 def listar_asignaciones_por_caso(
     id_caso: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-    """Listar todas las asignaciones de un caso específico"""
+    """Listar todas las asignaciones de un caso específico (todos los roles)"""
     # Verificar que el caso existe
     caso = db.query(Caso).filter(Caso.id_caso == id_caso).first()
     if not caso:
@@ -96,9 +100,10 @@ def listar_asignaciones_por_caso(
 @router.get("/usuario/{id_usuario}", response_model=list[AsignacionResponse])
 def listar_asignaciones_por_usuario(
     id_usuario: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-    """Listar todas las asignaciones de un usuario específico"""
+    """Listar todas las asignaciones de un usuario específico (todos los roles)"""
     # Verificar que el usuario existe
     usuario = db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
     if not usuario:
@@ -116,10 +121,16 @@ def listar_asignaciones_por_usuario(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def crear_asignacion(
     asignacion_data: AsignacionCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
-    Crear una nueva asignación de staff a un caso
+    Crear una nueva asignación de tutor a un caso (todos los roles)
+    
+    Validaciones:
+    - Solo se pueden asignar usuarios con rol "Tutor"
+    - Un tutor no puede ser asignado dos veces al mismo caso (no duplicados)
+    - Un tutor puede estar asignado a múltiples casos diferentes
     
     Registra auditoría automáticamente.
     """
@@ -134,6 +145,13 @@ def crear_asignacion(
             detail=f"Usuario con ID {asignacion_data.id_usuario} no encontrado"
         )
     
+    # Verificar que el usuario sea Tutor
+    if usuario.rol.nombre_rol != "Tutor":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Solo se pueden asignar usuarios con rol Tutor. El usuario {usuario.nombre} tiene rol {usuario.rol.nombre_rol}"
+        )
+    
     # Verificar que el caso existe
     caso = db.query(Caso).filter(
         Caso.id_caso == asignacion_data.id_caso
@@ -145,7 +163,7 @@ def crear_asignacion(
             detail=f"Caso con ID {asignacion_data.id_caso} no encontrado"
         )
     
-    # Verificar si ya existe una asignación igual
+    # Verificar que el tutor no esté ya asignado a este caso (prevenir duplicados)
     asignacion_existente = db.query(Asignacion).filter(
         Asignacion.id_usuario == asignacion_data.id_usuario,
         Asignacion.id_caso == asignacion_data.id_caso
@@ -154,7 +172,7 @@ def crear_asignacion(
     if asignacion_existente:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"El usuario {usuario.nombre} ya está asignado a este caso"
+            detail=f"El tutor {usuario.nombre} {usuario.apellido if usuario.apellido else ''} ya está asignado a este caso"
         )
     
     # Crear la asignación
@@ -164,7 +182,7 @@ def crear_asignacion(
     # Registrar en auditoría
     registrar_auditoria_caso(
         db=db,
-        accion="Asignación de staff",
+        accion="Asignación de tutor",
         id_usuario=asignacion_data.id_usuario,
         id_caso=asignacion_data.id_caso,
         valor_anterior=None,
@@ -204,10 +222,11 @@ def actualizar_asignacion(
 @router.delete("/{asignacion_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_asignacion(
     asignacion_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     """
-    Eliminar una asignación
+    Eliminar una asignación (todos los roles)
     
     Registra auditoría automáticamente.
     """

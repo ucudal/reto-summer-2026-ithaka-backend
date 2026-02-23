@@ -38,26 +38,26 @@ INSERT INTO programa (nombre, activo) VALUES
     ('Programa Mentorías', TRUE);
 
 -- Casos
-INSERT INTO caso (nombre_caso, descripcion, datos_chatbot, consentimiento_datos, id_emprendedor, id_convocatoria, id_estado, fecha_creacion) VALUES 
+INSERT INTO caso (nombre_caso, descripcion, datos_chatbot, id_emprendedor, id_convocatoria, id_estado, fecha_creacion) VALUES 
     ('EcoApp - Reciclaje Inteligente', 
      'Aplicación móvil para facilitar el reciclaje urbano mediante gamificación', 
      '{"pregunta1": "Tecnología", "pregunta2": "Impacto ambiental", "pregunta3": "B2C", "pregunta4": "MVP en desarrollo", "pregunta5": "1-2 personas", "pregunta6": "Sí", "pregunta7": "Financiamiento y mentoría", "pregunta8": "Próximos 6 meses", "pregunta9": "Uruguay", "pregunta10": "Medio ambiente"}',
-     TRUE, 1, 1, 2, '2026-01-15 11:00:00'),
+     1, 1, 2, '2026-01-15 11:00:00'),
     
     ('AgriTech Solutions', 
      'Plataforma de agricultura de precisión con IoT para pequeños productores', 
      '{"pregunta1": "AgTech", "pregunta2": "Aumentar productividad agrícola", "pregunta3": "B2B", "pregunta4": "Idea validada", "pregunta5": "3-4 personas", "pregunta6": "Sí", "pregunta7": "Acceso a inversores", "pregunta8": "Este año", "pregunta9": "Uruguay y región", "pregunta10": "Agricultura"}',
-     TRUE, 2, 1, 3, '2026-01-20 15:00:00'),
+     2, 1, 3, '2026-01-20 15:00:00'),
     
     ('EduPlay', 
      'Plataforma educativa gamificada para niños de primaria', 
      '{"pregunta1": "EdTech", "pregunta2": "Mejorar aprendizaje", "pregunta3": "B2B2C", "pregunta4": "Prototipo", "pregunta5": "2-3 personas", "pregunta6": "No", "pregunta7": "Desarrollo tecnológico", "pregunta8": "Próximo año", "pregunta9": "Uruguay", "pregunta10": "Educación"}',
-     TRUE, 3, 1, 1, '2026-02-01 10:00:00'),
+     3, 1, 1, '2026-02-01 10:00:00'),
     
     ('HealthConnect', 
      'Telemedicina accesible para zonas rurales', 
      '{"pregunta1": "HealthTech", "pregunta2": "Acceso a salud", "pregunta3": "B2C", "pregunta4": "Solo idea", "pregunta5": "1 persona", "pregunta6": "No", "pregunta7": "Validación y networking", "pregunta8": "En 2 años", "pregunta9": "Latinoamérica", "pregunta10": "Salud"}',
-     TRUE, 4, 1, 1, '2026-02-10 17:00:00');
+     4, 1, 1, '2026-02-10 17:00:00');
 
 -- Asignaciones
 INSERT INTO asignacion (id_usuario, id_caso, fecha_asignacion) VALUES 

@@ -4,19 +4,32 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.models.convocatoria import Convocatoria
+from app.models.usuario import Usuario
 from app.schemas.convocatoria import ConvocatoriaCreate, ConvocatoriaUpdate, ConvocatoriaResponse
 from app.services.auditoria_service import registrar_auditoria_general
+from app.core.security import require_role
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[ConvocatoriaResponse])
-def listar_convocatorias(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def listar_convocatorias(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
+):
+    """Listar convocatorias (todos los roles)"""
     return db.query(Convocatoria).offset(skip).limit(limit).all()
 
 
 @router.get("/{convocatoria_id}", response_model=ConvocatoriaResponse)
-def obtener_convocatoria(convocatoria_id: int, db: Session = Depends(get_db)):
+def obtener_convocatoria(
+    convocatoria_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
+):
+    """Obtener convocatoria (todos los roles)"""
     convocatoria = (
         db.query(Convocatoria)
         .filter(Convocatoria.id_convocatoria == convocatoria_id)
@@ -28,7 +41,12 @@ def obtener_convocatoria(convocatoria_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=ConvocatoriaResponse, status_code=status.HTTP_201_CREATED)
-def crear_convocatoria(convocatoria_data: ConvocatoriaCreate, db: Session = Depends(get_db)):
+def crear_convocatoria(
+    convocatoria_data: ConvocatoriaCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador"]))
+):
+    """Crear convocatoria (Admin y Coordinador)"""
     nueva = Convocatoria(**convocatoria_data.model_dump())
     db.add(nueva)
     db.flush()  # Para obtener el id antes del commit
@@ -48,7 +66,13 @@ def crear_convocatoria(convocatoria_data: ConvocatoriaCreate, db: Session = Depe
 
 
 @router.put("/{convocatoria_id}", response_model=ConvocatoriaResponse)
-def actualizar_convocatoria(convocatoria_id: int, convocatoria_data: ConvocatoriaUpdate, db: Session = Depends(get_db)):
+def actualizar_convocatoria(
+    convocatoria_id: int,
+    convocatoria_data: ConvocatoriaUpdate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador"]))
+):
+    """Actualizar convocatoria (Admin y Coordinador)"""
     convocatoria = (
         db.query(Convocatoria)
         .filter(Convocatoria.id_convocatoria == convocatoria_id)
