@@ -59,26 +59,26 @@ INSERT INTO programa (nombre, activo) VALUES
 -- =====================================
 -- CASOS
 -- =====================================
-INSERT INTO caso (nombre_caso, descripcion, datos_chatbot, consentimiento_datos, id_emprendedor, id_convocatoria, id_estado, fecha_creacion) VALUES 
+INSERT INTO caso (nombre_caso, descripcion, datos_chatbot, id_emprendedor, id_convocatoria, id_estado, fecha_creacion) VALUES 
 ('EcoApp - Reciclaje Inteligente',
  'Aplicación móvil para facilitar el reciclaje urbano mediante gamificación',
  '{"sector":"Tecnología","modelo":"B2C","estado_producto":"MVP en desarrollo"}',
- TRUE, 1, 1, 2, '2026-01-15 11:00:00'),
+ 1, 1, 2, '2026-01-15 11:00:00'),
 
 ('AgriTech Solutions',
  'Plataforma de agricultura de precisión con IoT para pequeños productores',
  '{"sector":"AgTech","modelo":"B2B","estado_producto":"Idea validada"}',
- TRUE, 2, 1, 3, '2026-01-20 15:00:00'),
+ 2, 1, 3, '2026-01-20 15:00:00'),
 
 ('EduPlay',
  'Plataforma educativa gamificada para niños de primaria',
  '{"sector":"EdTech","modelo":"B2B2C","estado_producto":"Prototipo"}',
- TRUE, 3, 1, 1, '2026-02-01 10:00:00'),
+ 3, 1, 1, '2026-02-01 10:00:00'),
 
 ('HealthConnect',
  'Telemedicina accesible para zonas rurales',
  '{"sector":"HealthTech","modelo":"B2C","estado_producto":"Solo idea"}',
- TRUE, 4, 1, 1, '2026-02-10 17:00:00');
+ 4, 1, 1, '2026-02-10 17:00:00');
 
 
 -- =====================================
