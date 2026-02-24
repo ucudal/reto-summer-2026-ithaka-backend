@@ -414,10 +414,6 @@ def cambiar_estado_caso(
         valor_nuevo=f"{nombre_estado} ({tipo_caso})"
     )
     
-    from app.api.notificacion import notificar_cambio_estado
-
-    
-
     db.commit()
     db.refresh(caso)
     
