@@ -26,7 +26,8 @@ from app.api.v1.endpoints import (
     programa,
     rol,
     usuario,
-    auth
+    auth,
+    metricas_router
 )
 
 # Router principal que agrupa todo
@@ -55,6 +56,13 @@ api_router.include_router(
     caso.router,
     prefix="/casos",
     tags=["casos"]
+)
+
+#Metricas
+api_router.include_router(
+    metricas_router,
+    prefix="/metrics",
+    tags=["metrics"],
 )
 
 # Notas
