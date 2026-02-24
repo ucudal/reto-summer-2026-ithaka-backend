@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
-from app.models.caso import Caso´´´´´´´´´´
+from app.models.caso import Caso
 
 
 router = APIRouter()
