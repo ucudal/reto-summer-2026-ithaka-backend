@@ -151,16 +151,14 @@ def obtener_caso(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes acceso a este caso"
             )
-    
-    return caso
 
     if id_estado:
         estado = db.query(CatalogoEstados).filter(CatalogoEstados.id_estado == id_estado).first()
         caso.id_estado = estado.nombre_estado if estado else None
     
     if id_emprendedor:
-        emprendedor = db.query(Usuario).filter(Usuario.id_usuario == id_emprendedor).first()
-        caso.id_emprendedor = f"{emprendedor.nombre} {emprendedor.apellido}" if emprendedor else None   
+        emprendedor = db.query(Emprendedor).filter(Emprendedor.id_emprendedor == id_emprendedor).first()
+        caso.id_emprendedor = f"{emprendedor.nombre} {emprendedor.apellido}" if emprendedor else None
     
     if id_convocatoria:
         convocatoria = db.query(Convocatoria).filter(Convocatoria.id_convocatoria == id_convocatoria).first()
@@ -175,8 +173,25 @@ def obtener_caso(
     else:
         apoyo = "Sin apoyo asignado"     
     
-    custom_case = {"fecha_creacion": caso.fecha_creacion, "id_caso": caso.id_caso,"descripcion": caso.descripcion, "estado": caso.id_estado, "emprendedor": caso.id_emprendedor, "convocatoria": caso.id_convocatoria, "nombre_caso": caso.nombre_caso, "datos_chatbot": caso.datos_chatbot, "programa_apoyo": apoyo} # agregar tutor
-    
+    # Obtener tutor asignado
+    asignacion = db.query(Asignacion).filter(Asignacion.id_caso == caso_id).first()
+    tutor_nombre = "Sin asignar"
+    if asignacion:
+        tutor = db.query(Usuario).filter(Usuario.id_usuario == asignacion.id_usuario).first()
+        tutor_nombre = f"{tutor.nombre} {tutor.apellido}" if tutor else None
+
+    custom_case = {
+        "fecha_creacion": caso.fecha_creacion,
+        "id_caso": caso.id_caso,
+        "descripcion": caso.descripcion,
+        "estado": caso.id_estado,
+        "emprendedor": caso.id_emprendedor,
+        "convocatoria": caso.id_convocatoria,
+        "nombre_caso": caso.nombre_caso,
+        "datos_chatbot": caso.datos_chatbot,
+        "programa_apoyo": apoyo,
+        "tutor": tutor_nombre
+    }
     return custom_case
 
 
