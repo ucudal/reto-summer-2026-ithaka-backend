@@ -152,9 +152,14 @@ def obtener_caso(
                 detail="No tienes acceso a este caso"
             )
 
+    nombre_estado = None
+    tipo_caso = None
     if id_estado:
         estado = db.query(CatalogoEstados).filter(CatalogoEstados.id_estado == id_estado).first()
-        caso.id_estado = estado.nombre_estado if estado else None
+        if estado:
+            nombre_estado = estado.nombre_estado
+            tipo_caso = estado.tipo_caso
+    
     
     if id_emprendedor:
         emprendedor = db.query(Emprendedor).filter(Emprendedor.id_emprendedor == id_emprendedor).first()
@@ -184,7 +189,9 @@ def obtener_caso(
         "fecha_creacion": caso.fecha_creacion,
         "id_caso": caso.id_caso,
         "descripcion": caso.descripcion,
-        "estado": caso.id_estado,
+        "id_estado": caso.id_estado,
+        "nombre_estado": nombre_estado,
+        "tipo_caso": tipo_caso,
         "emprendedor": caso.id_emprendedor,
         "convocatoria": caso.id_convocatoria,
         "nombre_caso": caso.nombre_caso,
