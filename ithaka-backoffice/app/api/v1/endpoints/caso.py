@@ -65,42 +65,46 @@ def listar_casos(
         id_emprendedor = caso.id_emprendedor
         id_convocatoria = caso.id_convocatoria
         id_caso = caso.id_caso
-        
-        # Obtener nombre del estado
+
+        # Obtener nombre del estado y tipo_caso
         estado_nombre = None
+        tipo_caso_val = None
         if id_estado:
             estado = db.query(CatalogoEstados).filter(CatalogoEstados.id_estado == id_estado).first()
-            estado_nombre = estado.nombre_estado if estado else None
-        
+            if estado:
+                estado_nombre = estado.nombre_estado
+                tipo_caso_val = estado.tipo_caso
+
         # Obtener nombre del emprendedor
         emprendedor_nombre = None
         if id_emprendedor:
             emprendedor = db.query(Emprendedor).filter(Emprendedor.id_emprendedor == id_emprendedor).first()
             emprendedor_nombre = f"{emprendedor.nombre} {emprendedor.apellido}" if emprendedor else None
-        
+
         # Obtener nombre de la convocatoria
         convocatoria_nombre = None
         if id_convocatoria:
             convocatoria = db.query(Convocatoria).filter(Convocatoria.id_convocatoria == id_convocatoria).first()
             convocatoria_nombre = convocatoria.nombre if convocatoria else None
-        
+
         asignacion = db.query(Asignacion).filter(Asignacion.id_caso == id_caso).first()
         tutor = "Sin asignar"
-        
         if asignacion:
             tutor = db.query(Usuario).filter(Usuario.id_usuario == asignacion.id_usuario).first()
             tutor = f"{tutor.nombre} {tutor.apellido}" if tutor else None
-        
+
         # Armar el dict personalizado
         custom_caso = {
             "id_caso": caso.id_caso,
             "nombre_caso": caso.nombre_caso,
             "descripcion": caso.descripcion,
             "fecha_creacion": caso.fecha_creacion,
-            "estado": estado_nombre,
+            "id_estado": caso.id_estado,
+            "nombre_estado": estado_nombre,
+            "tipo_caso": tipo_caso_val,
             "emprendedor": emprendedor_nombre,
             "convocatoria": convocatoria_nombre,
-            "datos_chatbot": caso.datos_chatbot, 
+            "datos_chatbot": caso.datos_chatbot,
             "tutor": tutor
         }
         casos_transformados.append(custom_caso)
@@ -152,9 +156,14 @@ def obtener_caso(
                 detail="No tienes acceso a este caso"
             )
 
+    nombre_estado = None
+    tipo_caso = None
     if id_estado:
         estado = db.query(CatalogoEstados).filter(CatalogoEstados.id_estado == id_estado).first()
-        caso.id_estado = estado.nombre_estado if estado else None
+        if estado:
+            nombre_estado = estado.nombre_estado
+            tipo_caso = estado.tipo_caso
+    
     
     if id_emprendedor:
         emprendedor = db.query(Emprendedor).filter(Emprendedor.id_emprendedor == id_emprendedor).first()
@@ -184,7 +193,9 @@ def obtener_caso(
         "fecha_creacion": caso.fecha_creacion,
         "id_caso": caso.id_caso,
         "descripcion": caso.descripcion,
-        "estado": caso.id_estado,
+        "id_estado": caso.id_estado,
+        "nombre_estado": nombre_estado,
+        "tipo_caso": tipo_caso,
         "emprendedor": caso.id_emprendedor,
         "convocatoria": caso.id_convocatoria,
         "nombre_caso": caso.nombre_caso,
