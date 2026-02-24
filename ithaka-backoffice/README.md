@@ -31,10 +31,29 @@ Documentación interactiva: **http://localhost:8000/docs**
 
 ## 🗄️ Importar base de datos
 
+### 1. Estructura de tablas
+
 ```bash
 Get-Content ithaka_backoffice.sql | docker exec -i ithaka_postgres psql -U postgres -d ithaka_db
+```
+
+### 2. Datos iniciales
+
+```bash
 Get-Content ithaka_inserts.sql | docker exec -i ithaka_postgres psql -U postgres -d ithaka_db
 ```
+
+### 3. Crear usuarios de prueba
+
+```bash
+docker exec -it ithaka_api python -m scripts.create_test_users
+```
+
+Esto creará:
+- 1 Admin: `admin@ithaka.com` / `admin123`
+- 1 Coordinador: `coordinador@ithaka.com` / `coord123`
+- 2 Tutores: `tutor1@ithaka.com` y `tutor2@ithaka.com` / `tutor123`
+
 
 ## 📤 Exportar base de datos (Dump)
 

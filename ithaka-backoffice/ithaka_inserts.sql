@@ -11,10 +11,9 @@ INSERT INTO rol (nombre_rol) VALUES
 -- =====================================
 -- USUARIOS
 -- =====================================
-INSERT INTO usuario (nombre, apellido, email, password_hash, activo, id_rol) VALUES 
-('Juan', 'Pérez', 'juan.perez@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIHe.8YY7O', TRUE, 1),
-('María', 'González', 'maria.gonzalez@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIHe.8YY7O', TRUE, 2),
-('Pedro', 'Rodríguez', 'pedro.rodriguez@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIHe.8YY7O', TRUE, 3);
+-- Los usuarios se crean con el script:
+-- python -m scripts.create_test_users
+-- Esto permite tener contraseñas visibles para pruebas
 
 
 -- =====================================
@@ -81,11 +80,13 @@ INSERT INTO caso (nombre_caso, descripcion, datos_chatbot, id_emprendedor, id_co
  4, 1, 1, '2026-02-10 17:00:00');
 
 
--- =====================================
--- ASIGNACIONES
--- =====================================
-INSERT INTO asignacion (id_usuario, id_caso, fecha_asignacion) VALUES 
-(2, 1, '2026-01-16 09:00:00'),
-(3, 2, '2026-01-21 10:00:00'),
-(2, 3, '2026-02-02 11:00:00'),
-(3, 4, '2026-02-11 09:30:00');
+-- -- =====================================
+-- -- ASIGNACIONES
+-- -- =====================================
+-- INSERT INTO asignacion (id_usuario, id_caso, fecha_asignacion) VALUES 
+-- (2, 1, '2026-01-16 09:00:00'),
+-- (3, 2, '2026-01-21 10:00:00'),
+-- (2, 3, '2026-02-02 11:00:00'),
+-- (3, 4, '2026-02-11 09:30:00');
+
+-- COMENTADA PORQUE NO HAY USUARIOS. EJECUTAR DESPUÉS DE LA CREACIÓN DE USUARIOS
