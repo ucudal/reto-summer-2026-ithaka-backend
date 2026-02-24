@@ -64,6 +64,12 @@ class Caso(Base):
     #   caso.estado.nombre_estado ← "En Revisión"
     #   caso.estado.tipo_caso ← "Postulacion"
     estado = relationship("CatalogoEstados", backref="casos")
+
+    # Acceso a la convocatoria
+    convocatoria = relationship("Convocatoria", backref="casos")
+
+# Acceso a las asignaciones (tutores)
+    asignaciones = relationship("Asignacion", backref="caso")
     
     # Nota: Más relationships se agregarán cuando tengas Apoyo, Asignacion, Nota, Auditoria
     # Por ejemplo:
