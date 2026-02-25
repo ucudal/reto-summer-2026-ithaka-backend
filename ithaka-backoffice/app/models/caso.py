@@ -66,10 +66,10 @@ class Caso(Base):
     estado = relationship("CatalogoEstados", backref="casos")
 
     # Acceso a la convocatoria
-    convocatoria = relationship("Convocatoria", backref="casos")
+    convocatoria = relationship("Convocatoria", back_populates="casos")
 
-# Acceso a las asignaciones (tutores)
-    asignaciones = relationship("Asignacion", backref="caso")
+    # Acceso a las asignaciones (tutores)
+    asignaciones = relationship("Asignacion", back_populates="caso")
     
     # Nota: Más relationships se agregarán cuando tengas Apoyo, Asignacion, Nota, Auditoria
     # Por ejemplo:

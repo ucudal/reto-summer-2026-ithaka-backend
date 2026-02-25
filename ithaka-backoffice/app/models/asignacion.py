@@ -34,4 +34,4 @@ class Asignacion(Base):
     usuario = relationship("Usuario", backref="asignaciones")
 
     # Relación con Caso
-    caso = relationship("Caso", backref="asignaciones")
+    caso = relationship("Caso", back_populates="asignaciones")

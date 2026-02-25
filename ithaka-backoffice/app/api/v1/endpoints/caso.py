@@ -1,11 +1,10 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.models import Caso
-from app.models import CatalogoEstados
+from app.models import Caso, CatalogoEstados
 from app.models import Convocatoria
 from app.models.usuario import Usuario
 from app.models.asignacion import Asignacion
@@ -14,8 +13,8 @@ from app.models.programa import Programa
 from app.models.apoyo import Apoyo
 from app.core.security import get_current_user, require_role
 from app.services.auditoria_service import registrar_auditoria_caso
-from app.models.asignacion import Asignacion
 from app.models.emprendedor import Emprendedor
+from app.services.export_service import ExportService
 
 router = APIRouter()
 
@@ -31,31 +30,21 @@ def listar_casos(
     tipo_caso: str = None,
     nombre_estado: str = None,
     id_emprendedor: int = None,
+    id_convocatoria: int = None,
+    id_tutor: int = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
-    """
-    Listar todos los casos
-    
-    URL: GET /api/v1/caso?skip=0&limit=100
-    """
-    query = db.query(Caso)
-
-    # Si es Tutor, filtrar solo casos asignados
-    if current_user.rol.nombre_rol == "Tutor":
-        query = query.join(Asignacion).filter(
-            Asignacion.id_usuario == current_user.id_usuario
-        )
-
-    if tipo_caso:
-        query = query.join(CatalogoEstados).filter(CatalogoEstados.tipo_caso == tipo_caso)
-    if nombre_estado:
-        query = query.join(CatalogoEstados).filter(CatalogoEstados.nombre_estado == nombre_estado)
-    if id_emprendedor:
-        query = query.filter(Caso.id_emprendedor == id_emprendedor)
-    if id_estado:
-        query = query.filter(Caso.id_estado == id_estado)
-    
+    query = ExportService.construir_query_casos(
+        db=db,
+        current_user=current_user,
+        id_estado=id_estado,
+        tipo_caso=tipo_caso,
+        nombre_estado=nombre_estado,
+        id_emprendedor=id_emprendedor,
+        id_convocatoria=id_convocatoria,
+        id_tutor=id_tutor
+    )
     casos = query.offset(skip).limit(limit).all()
     
     # Transformar cada caso para devolver nombres en lugar de IDs
@@ -110,6 +99,53 @@ def listar_casos(
         casos_transformados.append(custom_caso)
     
     return casos_transformados
+
+
+# ============================================================================
+# EXPORTAR (GET /export)
+# ============================================================================
+@router.get("/export", status_code=status.HTTP_200_OK)
+def exportar_casos(
+    id_estado: int = None,
+    tipo_caso: str = None,
+    nombre_estado: str = None,
+    id_emprendedor: int = None,
+    id_convocatoria: int = None,
+    id_tutor: int = None,
+    con_tutores: bool = False,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
+):
+    if con_tutores:
+        csv_file = ExportService.exportar_casos_con_tutores_csv(
+            db=db,
+            current_user=current_user,
+            id_estado=id_estado,
+            tipo_caso=tipo_caso,
+            nombre_estado=nombre_estado,
+            id_emprendedor=id_emprendedor,
+            id_convocatoria=id_convocatoria,
+            id_tutor=id_tutor
+        )
+        nombre_archivo = ExportService.generar_nombre_archivo("casos_con_tutores")
+    else:
+        csv_file = ExportService.exportar_casos_csv(
+            db=db,
+            current_user=current_user,
+            id_estado=id_estado,
+            tipo_caso=tipo_caso,
+            nombre_estado=nombre_estado,
+            id_emprendedor=id_emprendedor,
+            id_convocatoria=id_convocatoria,
+            id_tutor=id_tutor
+        )
+        nombre_archivo = ExportService.generar_nombre_archivo("casos")
+
+    return Response(
+        content=csv_file.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+    )
 
 
 # ============================================================================
@@ -427,8 +463,4 @@ def cambiar_estado_caso(
     
     db.commit()
     db.refresh(caso)
-    
     return caso
-
-
-

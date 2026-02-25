@@ -1,41 +1,106 @@
 import csv
-from io import StringIO, BytesIO
+import json
 from datetime import datetime
-from typing import List, Optional
-from sqlalchemy.orm import Session
+from io import StringIO
+from typing import Optional
+
+from sqlalchemy.orm import Session, joinedload
+
+from app.models.asignacion import Asignacion
 from app.models.caso import Caso
+from app.models.catalogo_estados import CatalogoEstados
 from app.models.emprendedor import Emprendedor
+from app.models.usuario import Usuario
 
 
 class ExportService:
     @staticmethod
-    def exportar_casos_csv(
+    def construir_query_casos(
         db: Session,
-        filtro_estado: Optional[int] = None,
-        filtro_convocatoria: Optional[int] = None
-    ) -> StringIO:
+        current_user: Optional[Usuario] = None,
+        id_estado: Optional[int] = None,
+        tipo_caso: Optional[str] = None,
+        nombre_estado: Optional[str] = None,
+        id_emprendedor: Optional[int] = None,
+        id_convocatoria: Optional[int] = None,
+        id_tutor: Optional[int] = None,
+        incluir_relaciones: bool = True
+    ):
         """
-            Exportar casos a CSV con filtros opcionales
-        
-            db: Sesión de base de datos
-            filtro_estado: ID del estado para filtrar (opcional)
-            filtro_convocatoria: ID de la convocatoria para filtrar (opcional)
-        
+        Construye el query base de casos reutilizable para listados y exportaciones.
         """
         query = db.query(Caso)
-        
-        # Aplica filtros
-        if filtro_estado:
-            query = query.filter(Caso.id_estado == filtro_estado)
-        if filtro_convocatoria:
-            query = query.filter(Caso.id_convocatoria == filtro_convocatoria)
-        
-        casos = query.all()
-        
+
+        if incluir_relaciones:
+            query = query.options(
+                joinedload(Caso.estado),
+                joinedload(Caso.emprendedor),
+                joinedload(Caso.convocatoria),
+                joinedload(Caso.asignaciones).joinedload(Asignacion.usuario)
+            )
+
+        es_tutor = bool(
+            current_user
+            and current_user.rol
+            and current_user.rol.nombre_rol == "Tutor"
+        )
+        necesita_join_asignacion = es_tutor or id_tutor is not None
+        necesita_join_estado = tipo_caso is not None or nombre_estado is not None
+
+        if necesita_join_asignacion:
+            query = query.join(Asignacion)
+        if necesita_join_estado:
+            query = query.join(Caso.estado)
+
+        if es_tutor:
+            query = query.filter(Asignacion.id_usuario == current_user.id_usuario)
+        if id_tutor is not None:
+            query = query.filter(Asignacion.id_usuario == id_tutor)
+        if id_estado is not None:
+            query = query.filter(Caso.id_estado == id_estado)
+        if id_emprendedor is not None:
+            query = query.filter(Caso.id_emprendedor == id_emprendedor)
+        if id_convocatoria is not None:
+            query = query.filter(Caso.id_convocatoria == id_convocatoria)
+        if tipo_caso is not None:
+            query = query.filter(CatalogoEstados.tipo_caso == tipo_caso)
+        if nombre_estado is not None:
+            query = query.filter(CatalogoEstados.nombre_estado == nombre_estado)
+
+        if necesita_join_asignacion:
+            query = query.distinct()
+
+        return query
+
+    @staticmethod
+    def exportar_casos_csv(
+        db: Session,
+        current_user: Optional[Usuario] = None,
+        id_estado: Optional[int] = None,
+        tipo_caso: Optional[str] = None,
+        nombre_estado: Optional[str] = None,
+        id_emprendedor: Optional[int] = None,
+        id_convocatoria: Optional[int] = None,
+        id_tutor: Optional[int] = None
+    ) -> StringIO:
+        """
+        Exportar casos a CSV con filtros opcionales.
+        """
+        casos = ExportService.construir_query_casos(
+            db=db,
+            current_user=current_user,
+            id_estado=id_estado,
+            tipo_caso=tipo_caso,
+            nombre_estado=nombre_estado,
+            id_emprendedor=id_emprendedor,
+            id_convocatoria=id_convocatoria,
+            id_tutor=id_tutor
+        ).order_by(Caso.id_caso.asc()).all()
+
         # Crea archivo CSV en memoria
         output = StringIO()
         writer = csv.writer(output, quoting=csv.QUOTE_ALL)
-        
+
         # Encabezados
         writer.writerow([
             "ID Caso",
@@ -58,11 +123,11 @@ class ExportService:
             "Estado del Caso",
             "Datos del Chatbot (JSON)"
         ])
-        
+
         # Filas de datos
         for caso in casos:
             emprendedor = caso.emprendedor or Emprendedor()
-            
+
             writer.writerow([
                 caso.id_caso or "",
                 caso.nombre_caso or "",
@@ -82,27 +147,41 @@ class ExportService:
                 emprendedor.motivacion or "",
                 caso.convocatoria.nombre if caso.convocatoria else "",
                 caso.estado.nombre_estado if caso.estado else "",
-                str(caso.datos_chatbot) if caso.datos_chatbot else "",
+                json.dumps(caso.datos_chatbot) if caso.datos_chatbot else "",
             ])
-        
+
         output.seek(0)
         return output
-    
+
     @staticmethod
-    def exportar_casos_con_tutores_csv(db: Session) -> StringIO:
+    def exportar_casos_con_tutores_csv(
+        db: Session,
+        current_user: Optional[Usuario] = None,
+        id_estado: Optional[int] = None,
+        tipo_caso: Optional[str] = None,
+        nombre_estado: Optional[str] = None,
+        id_emprendedor: Optional[int] = None,
+        id_convocatoria: Optional[int] = None,
+        id_tutor: Optional[int] = None
+    ) -> StringIO:
         """
         Exporta casos con información de tutores asignados
-                
         """
-        from app.models.asignacion import Asignacion
-        
-        # Casos con sus asignaciones
-        query = db.query(Caso).all()
-        
+        casos = ExportService.construir_query_casos(
+            db=db,
+            current_user=current_user,
+            id_estado=id_estado,
+            tipo_caso=tipo_caso,
+            nombre_estado=nombre_estado,
+            id_emprendedor=id_emprendedor,
+            id_convocatoria=id_convocatoria,
+            id_tutor=id_tutor
+        ).order_by(Caso.id_caso.asc()).all()
+
         # Crea archivo CSV
         output = StringIO()
         writer = csv.writer(output, quoting=csv.QUOTE_ALL)
-        
+
         # Encabezados
         writer.writerow([
             "ID Caso",
@@ -113,13 +192,18 @@ class ExportService:
             "Fecha de Asignación",
             "Estado del Caso"
         ])
-        
+
         # Filas de datos
-        for caso in query:
-            asignaciones = db.query(Asignacion).filter(
-                Asignacion.id_caso == caso.id_caso
-            ).all()
-            
+        for caso in casos:
+            asignaciones = caso.asignaciones
+
+            if id_tutor is not None:
+                asignaciones = [
+                    asignacion
+                    for asignacion in asignaciones
+                    if asignacion.id_usuario == id_tutor
+                ]
+
             if asignaciones:
                 for asignacion in asignaciones:
                     tutor = asignacion.usuario
@@ -132,7 +216,7 @@ class ExportService:
                         asignacion.fecha_asignacion.strftime("%Y-%m-%d") if asignacion.fecha_asignacion else "",
                         caso.estado.nombre_estado if caso.estado else "",
                     ])
-            else:
+            elif id_tutor is None:
                 # Mostrar casos sin tutor asignado
                 writer.writerow([
                     caso.id_caso or "",
@@ -143,10 +227,10 @@ class ExportService:
                     "",
                     caso.estado.nombre_estado if caso.estado else "",
                 ])
-        
+
         output.seek(0)
         return output
-    
+
     @staticmethod
     def generar_nombre_archivo(tipo_reporte: str = "postulaciones") -> str:
         """
