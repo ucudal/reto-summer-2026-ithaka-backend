@@ -25,56 +25,65 @@ pipeline {
         stage('Build con Kaniko') {
             steps {
                 sh '''
-                    /tmp/kubectl delete job build-${IMAGE_NAME} -n ${NAMESPACE} --ignore-not-found
+                    /tmp/kubectl delete job build-ithaka-api -n ticket-platform --ignore-not-found
 
-                    cat <<EOF | /tmp/kubectl apply -f -
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: build-${IMAGE_NAME}
-  namespace: ${NAMESPACE}
-spec:
-  backoffLimit: 0
-  ttlSecondsAfterFinished: 300
-  template:
-    spec:
-      restartPolicy: Never
-      initContainers:
-        - name: git-clone
-          image: alpine/git:latest
-          env:
-            - name: GITHUB_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: github-token
-                  key: token
-          command:
-            - /bin/sh
-            - -c
-            - |
-              AUTH_URL=\$(echo "${REPO_URL}" | sed "s|https://|https://\${GITHUB_TOKEN}@|")
-              git clone --branch ${BRANCH} --single-branch --depth 1 \$AUTH_URL /workspace
-          volumeMounts:
-            - name: workspace
-              mountPath: /workspace
-      containers:
-        - name: kaniko
-          image: gcr.io/kaniko-project/executor:latest
-          args:
-            - --context=${BUILD_CONTEXT}
-            - --dockerfile=${BUILD_CONTEXT}/Dockerfile
-            - --destination=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
-            - --destination=${REGISTRY}/${IMAGE_NAME}:latest
-            - --insecure
-            - --cache=true
-            - --snapshot-mode=redo
-          volumeMounts:
-            - name: workspace
-              mountPath: /workspace
-      volumes:
-        - name: workspace
-          emptyDir: {}
-EOF
+                            cat > /tmp/kaniko-job.yaml <<'ENDJOB'
+                apiVersion: batch/v1
+                kind: Job
+                metadata:
+                name: build-ithaka-api
+                namespace: ticket-platform
+                spec:
+                backoffLimit: 0
+                ttlSecondsAfterFinished: 300
+                template:
+                    spec:
+                    restartPolicy: Never
+                    initContainers:
+                        - name: git-clone
+                        image: alpine/git:latest
+                        env:
+                            - name: GITHUB_TOKEN
+                            valueFrom:
+                                secretKeyRef:
+                                name: github-token
+                                key: token
+                        command:
+                            - /bin/sh
+                            - -c
+                            - |
+                            AUTH_URL=$(echo "__REPO_URL__" | sed "s|https://|https://${GITHUB_TOKEN}@|")
+                            git clone --branch __BRANCH__ --single-branch --depth 1 $AUTH_URL /workspace
+                        volumeMounts:
+                            - name: workspace
+                            mountPath: /workspace
+                    containers:
+                        - name: kaniko
+                        image: gcr.io/kaniko-project/executor:latest
+                        args:
+                            - --context=__BUILD_CONTEXT__
+                            - --dockerfile=__BUILD_CONTEXT__/Dockerfile
+                            - --destination=__REGISTRY__/__IMAGE_NAME__:__IMAGE_TAG__
+                            - --destination=__REGISTRY__/__IMAGE_NAME__:latest
+                            - --insecure
+                            - --cache=true
+                            - --snapshot-mode=redo
+                        volumeMounts:
+                            - name: workspace
+                            mountPath: /workspace
+                    volumes:
+                        - name: workspace
+                        emptyDir: {}
+                ENDJOB
+
+                            sed -i "s|__REPO_URL__|${REPO_URL}|g" /tmp/kaniko-job.yaml
+                            sed -i "s|__BRANCH__|${BRANCH}|g" /tmp/kaniko-job.yaml
+                            sed -i "s|__BUILD_CONTEXT__|${BUILD_CONTEXT}|g" /tmp/kaniko-job.yaml
+                            sed -i "s|__REGISTRY__|${REGISTRY}|g" /tmp/kaniko-job.yaml
+                            sed -i "s|__IMAGE_NAME__|${IMAGE_NAME}|g" /tmp/kaniko-job.yaml
+                            sed -i "s|__IMAGE_TAG__|${IMAGE_TAG}|g" /tmp/kaniko-job.yaml
+
+                            /tmp/kubectl apply -f /tmp/kaniko-job.yaml
                 '''
             }
         }
