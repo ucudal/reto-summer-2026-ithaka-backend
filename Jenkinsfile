@@ -2,14 +2,14 @@ pipeline {
     agent any
 
     environment {
-        // Separamos las rutas: una interna para Kaniko y otra externa para el clúster
+        // Kaniko sube por aquí (rápido y directo)
         REGISTRY_INTERNAL = 'registry-service.ticket-platform.svc.cluster.local:5000'
+        
+        // El Deployment descarga por aquí (el dominio que el profe quiere)
         REGISTRY_EXTERNAL = 'registry.reto-ucu.net'
+        
         IMAGE_NAME    = 'ithaka-api'
         NAMESPACE     = 'ticket-platform'
-        REPO_URL      = 'https://github.com/ucudal/reto-summer-2026-ithaka-backend.git'
-        BRANCH        = 'main'
-        BUILD_CONTEXT = '/workspace/ithaka-backoffice'
         IMAGE_TAG     = "${env.BUILD_NUMBER}"
     }
 
@@ -104,13 +104,9 @@ spec:
         stage('Deploy') {
             steps {
                 sh '''
-                    # Actualizamos la imagen usando el dominio externo seguro
                     /tmp/kubectl set image deployment/${IMAGE_NAME} \
                         ${IMAGE_NAME}=${REGISTRY_EXTERNAL}/${IMAGE_NAME}:${IMAGE_TAG} \
                         -n ${NAMESPACE}
-
-                    /tmp/kubectl rollout status deployment/${IMAGE_NAME} \
-                        -n ${NAMESPACE} --timeout=120s
                 '''
             }
         }
