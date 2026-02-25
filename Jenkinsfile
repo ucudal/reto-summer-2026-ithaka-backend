@@ -2,15 +2,19 @@ pipeline {
     agent any
 
     environment {
-        // Kaniko sube por aquí (rápido y directo)
+        // Rutas del Registry
         REGISTRY_INTERNAL = 'registry-service.ticket-platform.svc.cluster.local:5000'
+        REGISTRY_EXTERNAL = 'registry.reto-ucu.net' 
         
-        // El Deployment descarga por aquí (el dominio que el profe quiere)
-        REGISTRY_EXTERNAL = 'registry.reto-ucu.net'
-        
+        // Variables de la imagen
         IMAGE_NAME    = 'ithaka-api'
-        NAMESPACE     = 'ticket-platform'
         IMAGE_TAG     = "${env.BUILD_NUMBER}"
+        NAMESPACE     = 'ticket-platform'
+        
+        // ¡Las variables de GitHub que faltaban!
+        REPO_URL      = 'https://github.com/ucudal/reto-summer-2026-ithaka-backend.git'
+        BRANCH        = 'main'
+        BUILD_CONTEXT = '/workspace/ithaka-backoffice'
     }
 
     stages {
@@ -104,9 +108,13 @@ spec:
         stage('Deploy') {
             steps {
                 sh '''
+                    # Usamos la ruta interna para evitar que el nodo pase por el router
                     /tmp/kubectl set image deployment/${IMAGE_NAME} \
-                        ${IMAGE_NAME}=${REGISTRY_EXTERNAL}/${IMAGE_NAME}:${IMAGE_TAG} \
+                        ${IMAGE_NAME}=${REGISTRY_INTERNAL}/${IMAGE_NAME}:${IMAGE_TAG} \
                         -n ${NAMESPACE}
+
+                    /tmp/kubectl rollout status deployment/${IMAGE_NAME} \
+                        -n ${NAMESPACE} --timeout=120s
                 '''
             }
         }
@@ -124,7 +132,7 @@ spec:
             '''
         }
         success {
-            echo "✅ Deploy completo: ${REGISTRY_EXTERNAL}/${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "✅ Deploy completo de la imagen: ${IMAGE_TAG}"
         }
     }
 }
