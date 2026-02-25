@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY      = 'registry-service.ticket-platform.svc.cluster.local:5000'
+        REGISTRY      = 'registry.reto-ucu.net' 
         IMAGE_NAME    = 'ithaka-api'
         NAMESPACE     = 'ticket-platform'
         REPO_URL      = 'https://github.com/ucudal/reto-summer-2026-ithaka-backend.git'
@@ -62,7 +62,6 @@ spec:
             - --dockerfile=__BUILD_CONTEXT__/Dockerfile
             - --destination=__REGISTRY__/__IMAGE_NAME__:__IMAGE_TAG__
             - --destination=__REGISTRY__/__IMAGE_NAME__:latest
-            - --insecure
             - --cache=true
             - --snapshot-mode=redo
           volumeMounts:
