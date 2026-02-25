@@ -33,12 +33,25 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      # SMTP settings so the API can reach MailHog when running in Docker
+      - MAIL_SERVER=mailhog
+      - MAIL_PORT=1025
+      - MAIL_FROM=noreply@example.com
+      - MAIL_FROM_NAME=Ithaka Notificaciones
     volumes:
       - .:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
       db:
         condition: service_healthy
+    # Si necesitas MailHog para desarrollo local
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: ithaka_mailhog
+    ports:
+      - "8025:8025" # UI
+      - "1025:1025" # SMTP
+    restart: unless-stopped
 
 volumes:
   postgres_data:
