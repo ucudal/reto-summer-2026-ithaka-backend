@@ -16,11 +16,12 @@ from app.schemas.metrics import (
 router = APIRouter()
 
 POSTULACION_ORDER = ["Postulado", "En Revisión", "Evaluación", "Rechazado", "Aprobada"]
+PROYECTO_ORDER = ["Recibida", "En evaluacion", "Incubado", "Proyecto activo", "Cerrado"]
 
 
 @router.get("/dashboard", response_model=MetricsDashboardResponse)
 def dashboard_metricas(
-    tipo_caso: Optional[str] = None,          # "Postulacion" | "Proyecto"
+    tipo_caso: Optional[str] = None,
     id_convocatoria: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
@@ -45,17 +46,19 @@ def dashboard_metricas(
             "tiempos_promedio_por_estado": [],
         }
 
-    # Orden especial solo para Postulacion
+    # Orden especial según el tipo
     if tipo_caso == "Postulacion":
-        order_expr = case(
-            {name: idx for idx, name in enumerate(POSTULACION_ORDER)},
-            value=CatalogoEstados.nombre_estado,
-            else_=999,
-        )
+        order_map = {name: idx for idx, name in enumerate(POSTULACION_ORDER)}
+        order_expr = case(order_map, value=CatalogoEstados.nombre_estado, else_=999)
+    elif tipo_caso == "Proyecto":
+        order_map = {name: idx for idx, name in enumerate(PROYECTO_ORDER)}
+        order_expr = case(order_map, value=CatalogoEstados.nombre_estado, else_=999)
     else:
         order_expr = CatalogoEstados.id_estado.asc()
 
+    # -----------------------------
     # Distribución por estado
+    # -----------------------------
     q_dist = (
         db.query(
             CatalogoEstados.id_estado.label("id_estado"),
@@ -88,7 +91,9 @@ def dashboard_metricas(
             )
         )
 
+    # -----------------------------
     # Tiempos promedio (edad desde creación)
+    # -----------------------------
     edad_dias = func.extract("epoch", func.now() - Caso.fecha_creacion) / 86400.0
 
     q_global = (
