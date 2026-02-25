@@ -24,66 +24,68 @@ pipeline {
 
         stage('Build con Kaniko') {
             steps {
+                writeFile file: 'kaniko-job.yaml', text: '''
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: build-ithaka-api
+  namespace: ticket-platform
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: git-clone
+          image: alpine/git:latest
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: github-token
+                  key: token
+          command:
+            - /bin/sh
+            - -c
+            - |
+              AUTH_URL=$(echo "__REPO_URL__" | sed "s|https://|https://${GITHUB_TOKEN}@|")
+              git clone --branch __BRANCH__ --single-branch --depth 1 $AUTH_URL /workspace
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+      containers:
+        - name: kaniko
+          image: gcr.io/kaniko-project/executor:latest
+          args:
+            - --context=__BUILD_CONTEXT__
+            - --dockerfile=__BUILD_CONTEXT__/Dockerfile
+            - --destination=__REGISTRY__/__IMAGE_NAME__:__IMAGE_TAG__
+            - --destination=__REGISTRY__/__IMAGE_NAME__:latest
+            - --insecure
+            - --cache=true
+            - --snapshot-mode=redo
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+      volumes:
+        - name: workspace
+          emptyDir: {}
+'''
                 sh '''
+                    sed -i "s|__REPO_URL__|${REPO_URL}|g" kaniko-job.yaml
+                    sed -i "s|__BRANCH__|${BRANCH}|g" kaniko-job.yaml
+                    sed -i "s|__BUILD_CONTEXT__|${BUILD_CONTEXT}|g" kaniko-job.yaml
+                    sed -i "s|__REGISTRY__|${REGISTRY}|g" kaniko-job.yaml
+                    sed -i "s|__IMAGE_NAME__|${IMAGE_NAME}|g" kaniko-job.yaml
+                    sed -i "s|__IMAGE_TAG__|${IMAGE_TAG}|g" kaniko-job.yaml
+
+                    echo "=== YAML generado ==="
+                    cat kaniko-job.yaml
+                    echo "====================="
+
                     /tmp/kubectl delete job build-ithaka-api -n ticket-platform --ignore-not-found
-
-                            cat > /tmp/kaniko-job.yaml <<'ENDJOB'
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                name: build-ithaka-api
-                namespace: ticket-platform
-                spec:
-                backoffLimit: 0
-                ttlSecondsAfterFinished: 300
-                template:
-                    spec:
-                    restartPolicy: Never
-                    initContainers:
-                        - name: git-clone
-                        image: alpine/git:latest
-                        env:
-                            - name: GITHUB_TOKEN
-                            valueFrom:
-                                secretKeyRef:
-                                name: github-token
-                                key: token
-                        command:
-                            - /bin/sh
-                            - -c
-                            - |
-                            AUTH_URL=$(echo "__REPO_URL__" | sed "s|https://|https://${GITHUB_TOKEN}@|")
-                            git clone --branch __BRANCH__ --single-branch --depth 1 $AUTH_URL /workspace
-                        volumeMounts:
-                            - name: workspace
-                            mountPath: /workspace
-                    containers:
-                        - name: kaniko
-                        image: gcr.io/kaniko-project/executor:latest
-                        args:
-                            - --context=__BUILD_CONTEXT__
-                            - --dockerfile=__BUILD_CONTEXT__/Dockerfile
-                            - --destination=__REGISTRY__/__IMAGE_NAME__:__IMAGE_TAG__
-                            - --destination=__REGISTRY__/__IMAGE_NAME__:latest
-                            - --insecure
-                            - --cache=true
-                            - --snapshot-mode=redo
-                        volumeMounts:
-                            - name: workspace
-                            mountPath: /workspace
-                    volumes:
-                        - name: workspace
-                        emptyDir: {}
-                ENDJOB
-
-                            sed -i "s|__REPO_URL__|${REPO_URL}|g" /tmp/kaniko-job.yaml
-                            sed -i "s|__BRANCH__|${BRANCH}|g" /tmp/kaniko-job.yaml
-                            sed -i "s|__BUILD_CONTEXT__|${BUILD_CONTEXT}|g" /tmp/kaniko-job.yaml
-                            sed -i "s|__REGISTRY__|${REGISTRY}|g" /tmp/kaniko-job.yaml
-                            sed -i "s|__IMAGE_NAME__|${IMAGE_NAME}|g" /tmp/kaniko-job.yaml
-                            sed -i "s|__IMAGE_TAG__|${IMAGE_TAG}|g" /tmp/kaniko-job.yaml
-
-                            /tmp/kubectl apply -f /tmp/kaniko-job.yaml
+                    /tmp/kubectl apply -f kaniko-job.yaml
                 '''
             }
         }
@@ -91,7 +93,7 @@ pipeline {
         stage('Esperar Build') {
             steps {
                 sh '''
-                    /tmp/kubectl wait --for=condition=complete job/build-${IMAGE_NAME} \
+                    /tmp/kubectl wait --for=condition=complete job/build-ithaka-api \
                         -n ${NAMESPACE} --timeout=600s
                 '''
             }
@@ -114,7 +116,7 @@ pipeline {
     post {
         failure {
             sh '''
-                POD=$(/tmp/kubectl get pods -n ${NAMESPACE} -l job-name=build-${IMAGE_NAME} \
+                POD=$(/tmp/kubectl get pods -n ${NAMESPACE} -l job-name=build-ithaka-api \
                     --no-headers -o custom-columns=":metadata.name" | head -1)
                 echo "=== Logs git-clone ==="
                 /tmp/kubectl logs $POD -c git-clone -n ${NAMESPACE} 2>/dev/null || true
