@@ -2,7 +2,9 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY      = 'registry.reto-ucu.net'
+        // Separamos las rutas: una interna para Kaniko y otra externa para el clúster
+        REGISTRY_INTERNAL = 'registry-service.ticket-platform.svc.cluster.local:5000'
+        REGISTRY_EXTERNAL = 'registry.reto-ucu.net'
         IMAGE_NAME    = 'ithaka-api'
         NAMESPACE     = 'ticket-platform'
         REPO_URL      = 'https://github.com/ucudal/reto-summer-2026-ithaka-backend.git'
@@ -60,8 +62,9 @@ spec:
           args:
             - --context=__BUILD_CONTEXT__
             - --dockerfile=__BUILD_CONTEXT__/Dockerfile
-            - --destination=__REGISTRY__/__IMAGE_NAME__:__IMAGE_TAG__
-            - --destination=__REGISTRY__/__IMAGE_NAME__:latest
+            - --destination=__REGISTRY_INTERNAL__/__IMAGE_NAME__:__IMAGE_TAG__
+            - --destination=__REGISTRY_INTERNAL__/__IMAGE_NAME__:latest
+            - --insecure
             - --cache=true
             - --snapshot-mode=redo
           volumeMounts:
@@ -75,7 +78,7 @@ spec:
                     sed -i "s|__REPO_URL__|${REPO_URL}|g" kaniko-job.yaml
                     sed -i "s|__BRANCH__|${BRANCH}|g" kaniko-job.yaml
                     sed -i "s|__BUILD_CONTEXT__|${BUILD_CONTEXT}|g" kaniko-job.yaml
-                    sed -i "s|__REGISTRY__|${REGISTRY}|g" kaniko-job.yaml
+                    sed -i "s|__REGISTRY_INTERNAL__|${REGISTRY_INTERNAL}|g" kaniko-job.yaml
                     sed -i "s|__IMAGE_NAME__|${IMAGE_NAME}|g" kaniko-job.yaml
                     sed -i "s|__IMAGE_TAG__|${IMAGE_TAG}|g" kaniko-job.yaml
 
@@ -101,8 +104,9 @@ spec:
         stage('Deploy') {
             steps {
                 sh '''
+                    # Actualizamos la imagen usando el dominio externo seguro
                     /tmp/kubectl set image deployment/${IMAGE_NAME} \
-                        ${IMAGE_NAME}=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} \
+                        ${IMAGE_NAME}=${REGISTRY_EXTERNAL}/${IMAGE_NAME}:${IMAGE_TAG} \
                         -n ${NAMESPACE}
 
                     /tmp/kubectl rollout status deployment/${IMAGE_NAME} \
@@ -124,7 +128,7 @@ spec:
             '''
         }
         success {
-            echo "✅ Deploy completo: ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "✅ Deploy completo: ${REGISTRY_EXTERNAL}/${IMAGE_NAME}:${IMAGE_TAG}"
         }
     }
 }
