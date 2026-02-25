@@ -37,16 +37,10 @@ Documentación interactiva: **http://localhost:8000/docs**
 Get-Content ithaka_backoffice.sql | docker exec -i ithaka_postgres psql -U postgres -d ithaka_db
 ```
 
-### 2. Datos iniciales
+### 2. Inicialización completa (datos + usuarios)
 
 ```bash
-Get-Content ithaka_inserts.sql | docker exec -i ithaka_postgres psql -U postgres -d ithaka_db
-```
-
-### 3. Crear usuarios de prueba
-
-```bash
-docker exec -it ithaka_api python -m scripts.create_test_users
+Get-Content ithaka_inserts.sql | docker exec -i ithaka_postgres psql -U postgres -d ithaka_db ; docker exec -it ithaka_api python -m scripts.create_test_users
 ```
 
 Esto creará:
