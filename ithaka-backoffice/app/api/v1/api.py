@@ -26,7 +26,8 @@ from app.api.v1.endpoints import (
     programa,
     rol,
     usuario,
-    auth
+    auth,
+    catalogo_apoyos
 )
 
 # Router principal que agrupa todo
@@ -43,7 +44,13 @@ api_router.include_router(
     tags=["emprendedores"]
 )
 
-# Catálogo de Estados
+ # Catálogo de Apoyos
+api_router.include_router(
+    catalogo_apoyos.router,
+    prefix="/catalogo_apoyos",
+    tags=["catalogo_apoyos"]
+)
+ # Catálogo de Estados
 api_router.include_router(
     catalogo_estados.router,
     prefix="/estados",

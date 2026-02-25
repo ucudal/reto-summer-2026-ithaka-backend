@@ -96,6 +96,15 @@ CREATE TABLE programa (
 );
 
 -- =========================
+-- TABLA CATALOGO_APOYO
+-- =========================
+CREATE TABLE catalogo_apoyo (
+    id_catalogo_apoyo SERIAL PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL UNIQUE,
+    descripcion TEXT,
+    activo BOOLEAN DEFAULT TRUE
+);
+-- =========================
 -- TABLA APOYO
 -- =========================
 CREATE TABLE apoyo (
@@ -123,23 +132,19 @@ CREATE TABLE apoyo (
 -- =========================
 CREATE TABLE apoyo_solicitado (
     id_apoyo_solicitado SERIAL PRIMARY KEY,
-    categoria_apoyo VARCHAR(150) NOT NULL,
+    id_catalogo_apoyo INTEGER NOT NULL,
     id_caso INTEGER NOT NULL,
+
+    FOREIGN KEY (id_catalogo_apoyo)
+        REFERENCES catalogo_apoyo(id_catalogo_apoyo)
+        ON DELETE RESTRICT,
 
     FOREIGN KEY (id_caso)
         REFERENCES caso(id_caso)
         ON DELETE CASCADE
 );
 
--- =========================
--- TABLA CATALOGO_APOYO
--- =========================
-CREATE TABLE catalogo_apoyo (
-    id_catalogo_apoyo SERIAL PRIMARY KEY,
-    nombre VARCHAR(150) NOT NULL UNIQUE,
-    descripcion TEXT,
-    activo BOOLEAN DEFAULT TRUE
-);
+
 
 -- =========================
 -- TABLA ASIGNACION
