@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY      = 'registry.reto-ucu.net' 
+        REGISTRY      = 'registry.reto-ucu.net'
         IMAGE_NAME    = 'ithaka-api'
         NAMESPACE     = 'ticket-platform'
         REPO_URL      = 'https://github.com/ucudal/reto-summer-2026-ithaka-backend.git'
