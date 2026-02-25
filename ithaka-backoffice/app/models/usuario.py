@@ -1,19 +1,3 @@
-"""
-Modelo USUARIO
---------------
-Representa los usuarios del sistema con autenticación y roles
-
-Tabla: usuario
-Columnas según SQL:
-- id_usuario SERIAL PRIMARY KEY
-- nombre VARCHAR(150) NOT NULL
-- apellido VARCHAR(150)
-- email VARCHAR(150) NOT NULL UNIQUE
-- password_hash TEXT NOT NULL
-- activo BOOLEAN DEFAULT TRUE
-- id_rol INTEGER NOT NULL (FK a rol)
-"""
-
 from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db.database import Base
@@ -35,10 +19,12 @@ class Usuario(Base):
     
     # Relaciones
     rol = relationship("Rol", back_populates="usuarios")
-    # Otras relaciones se agregarán cuando se implementen esos modelos:
-    # asignaciones = relationship("Asignacion", back_populates="usuario")
-    # notas = relationship("Nota", back_populates="usuario")
+    asignaciones = relationship("Asignacion", back_populates="usuario")
+    # notas = relationship("Nota", back_populates="usuario")  # puedes descomentar si existe modelo Nota
     
     def __repr__(self):
         """Representación que NO incluye password_hash por seguridad"""
-        return f"<Usuario(id={self.id_usuario}, email='{self.email}', rol_id={self.id_rol}, activo={self.activo})>"
+        return (
+            f"<Usuario(id={self.id_usuario}, nombre='{self.nombre}', "
+            f"email='{self.email}', rol_id={self.id_rol}, activo={self.activo})>"
+        )

@@ -1,20 +1,7 @@
-"""
-Modelo ASIGNACION
------------------
-Representa las asignaciones de usuarios (coordinadores/tutores) a casos.
-
-Tabla: asignacion
-Columnas según SQL:
-- id_asignacion SERIAL PRIMARY KEY
-- fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-- id_usuario INTEGER NOT NULL (FK a usuario)
-- id_caso INTEGER NOT NULL (FK a caso)
-"""
-
 from sqlalchemy import Column, Integer, DateTime, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.db.database import Base
-
 
 class Asignacion(Base):
     __tablename__ = "asignacion"
@@ -26,3 +13,7 @@ class Asignacion(Base):
     # Foreign Keys
     id_usuario = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False)
     id_caso = Column(Integer, ForeignKey("caso.id_caso"), nullable=False)
+    
+    # Relaciones
+    usuario = relationship("Usuario", back_populates="asignaciones")
+    caso = relationship("Caso", back_populates="asignaciones")
