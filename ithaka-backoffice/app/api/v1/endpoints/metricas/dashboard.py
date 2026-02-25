@@ -6,11 +6,13 @@ from sqlalchemy import func, case
 from app.api.deps import get_db
 from app.models.caso import Caso
 from app.models.catalogo_estados import CatalogoEstados
+from app.models.apoyo import Apoyo
 
-from app.schemas.metrics import (
-    MetricsDashboardResponse,
+from app.schemas.metricas import (
+    DashboardMetricasResponse,
     EstadoDistribucion,
     EstadoTiempoPromedio,
+    ApoyoDistribucion,
 )
 
 router = APIRouter()
@@ -19,7 +21,7 @@ POSTULACION_ORDER = ["Postulado", "En Revisión", "Evaluación", "Rechazado", "A
 PROYECTO_ORDER = ["Recibida", "En evaluacion", "Incubado", "Proyecto activo", "Cerrado"]
 
 
-@router.get("/dashboard", response_model=MetricsDashboardResponse)
+@router.get("/dashboard", response_model=DashboardMetricasResponse)
 def dashboard_metricas(
     tipo_caso: Optional[str] = None,
     id_convocatoria: Optional[int] = None,
@@ -44,9 +46,10 @@ def dashboard_metricas(
             "distribucion_por_estado": [],
             "tiempo_promedio_global_dias": None,
             "tiempos_promedio_por_estado": [],
+            "distribucion_apoyos": [],
         }
 
-    # Orden especial según el tipo
+    # Orden por tipo
     if tipo_caso == "Postulacion":
         order_map = {name: idx for idx, name in enumerate(POSTULACION_ORDER)}
         order_expr = case(order_map, value=CatalogoEstados.nombre_estado, else_=999)
@@ -56,9 +59,9 @@ def dashboard_metricas(
     else:
         order_expr = CatalogoEstados.id_estado.asc()
 
-    # -----------------------------
+    # -------------------------
     # Distribución por estado
-    # -----------------------------
+    # -------------------------
     q_dist = (
         db.query(
             CatalogoEstados.id_estado.label("id_estado"),
@@ -80,27 +83,25 @@ def dashboard_metricas(
               .all()
     )
 
-    distribucion: List[EstadoDistribucion] = []
-    for r in q_dist:
-        distribucion.append(
-            EstadoDistribucion(
-                id_estado=r.id_estado,
-                nombre_estado=r.nombre_estado,
-                cantidad=r.cantidad,
-                porcentaje=round((r.cantidad / total) * 100.0, 2),
-            )
+    distribucion: List[EstadoDistribucion] = [
+        EstadoDistribucion(
+            id_estado=r.id_estado,
+            nombre_estado=r.nombre_estado,
+            cantidad=r.cantidad,
+            porcentaje=round((r.cantidad / total) * 100.0, 2),
         )
+        for r in q_dist
+    ]
 
-    # -----------------------------
-    # Tiempos promedio (edad desde creación)
-    # -----------------------------
+    # -------------------------
+    # Tiempos promedio
+    # -------------------------
     edad_dias = func.extract("epoch", func.now() - Caso.fecha_creacion) / 86400.0
 
-    q_global = (
-        db.query(func.avg(edad_dias))
-        .select_from(Caso)
-        .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
+    q_global = db.query(func.avg(edad_dias)).select_from(Caso).join(
+        CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado
     )
+
     if tipo_caso:
         q_global = q_global.filter(CatalogoEstados.tipo_caso == tipo_caso)
     if id_convocatoria:
@@ -110,13 +111,14 @@ def dashboard_metricas(
 
     q_estado = (
         db.query(
-            CatalogoEstados.id_estado.label("id_estado"),
-            CatalogoEstados.nombre_estado.label("nombre_estado"),
-            func.avg(edad_dias).label("promedio_dias"),
+            CatalogoEstados.id_estado,
+            CatalogoEstados.nombre_estado,
+            func.avg(edad_dias),
         )
         .select_from(Caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
     )
+
     if tipo_caso:
         q_estado = q_estado.filter(CatalogoEstados.tipo_caso == tipo_caso)
     if id_convocatoria:
@@ -128,13 +130,41 @@ def dashboard_metricas(
                .all()
     )
 
-    tiempos: List[EstadoTiempoPromedio] = [
+    tiempos = [
         EstadoTiempoPromedio(
-            id_estado=r.id_estado,
-            nombre_estado=r.nombre_estado,
-            promedio_dias=round(float(r.promedio_dias or 0.0), 2),
+            id_estado=r[0],
+            nombre_estado=r[1],
+            promedio_dias=round(float(r[2] or 0.0), 2),
         )
         for r in q_estado
+    ]
+
+    # -------------------------
+    # Distribución de apoyos
+    # -------------------------
+    q_apoyos = (
+        db.query(
+            Apoyo.tipo_apoyo.label("label"),
+            func.count(Apoyo.id_apoyo).label("cantidad"),
+        )
+        .join(Caso, Apoyo.id_caso == Caso.id_caso)
+        .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
+    )
+
+    if tipo_caso:
+        q_apoyos = q_apoyos.filter(CatalogoEstados.tipo_caso == tipo_caso)
+    if id_convocatoria:
+        q_apoyos = q_apoyos.filter(Caso.id_convocatoria == id_convocatoria)
+
+    q_apoyos = (
+        q_apoyos.group_by(Apoyo.tipo_apoyo)
+                .order_by(func.count(Apoyo.id_apoyo).desc())
+                .all()
+    )
+
+    distribucion_apoyos = [
+        ApoyoDistribucion(label=r.label, cantidad=r.cantidad)
+        for r in q_apoyos
     ]
 
     return {
@@ -143,4 +173,5 @@ def dashboard_metricas(
         "distribucion_por_estado": distribucion,
         "tiempo_promedio_global_dias": round(avg_global, 2),
         "tiempos_promedio_por_estado": tiempos,
+        "distribucion_apoyos": distribucion_apoyos,
     }

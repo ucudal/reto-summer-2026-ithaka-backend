@@ -61,8 +61,8 @@ api_router.include_router(
 #Metricas
 api_router.include_router(
     metricas_router,
-    prefix="/metrics",
-    tags=["metrics"],
+    prefix="/metricas",
+    tags=["metricas"],
 )
 
 # Notas
