@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
@@ -11,6 +11,7 @@ from app.models.emprendedor import Emprendedor
 from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse
 from app.core.security import require_role
 from app.services.auditoria_service import registrar_auditoria_caso
+from app.services.export_service import ExportService
 
 router = APIRouter()
 
@@ -26,6 +27,8 @@ def listar_casos(
     tipo_caso: str = None,
     nombre_estado: str = None,
     id_emprendedor: int = None,
+    id_convocatoria: int = None,
+    id_tutor: int = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
@@ -36,22 +39,80 @@ def listar_casos(
         joinedload(Caso.asignaciones).joinedload(Asignacion.usuario)
     )
 
+    # Restricción por rol Tutor
     if current_user.rol.nombre_rol == "Tutor":
         query = query.join(Asignacion).filter(
             Asignacion.id_usuario == current_user.id_usuario
         )
 
+    # Filtros
     if id_estado:
         query = query.filter(Caso.id_estado == id_estado)
+
     if id_emprendedor:
         query = query.filter(Caso.id_emprendedor == id_emprendedor)
+
+    if id_convocatoria:
+        query = query.filter(Caso.id_convocatoria == id_convocatoria)
+
+    if id_tutor:
+        query = query.join(Asignacion).filter(Asignacion.id_usuario == id_tutor)
+
     if tipo_caso:
         query = query.join(Caso.estado).filter(CatalogoEstados.tipo_caso == tipo_caso)
+
     if nombre_estado:
         query = query.join(Caso.estado).filter(CatalogoEstados.nombre_estado == nombre_estado)
 
     casos = query.offset(skip).limit(limit).all()
     return casos
+
+
+# ============================================================================
+# EXPORTAR (GET /export)
+# ============================================================================
+@router.get("/export", status_code=status.HTTP_200_OK)
+def exportar_casos(
+    id_estado: int = None,
+    tipo_caso: str = None,
+    nombre_estado: str = None,
+    id_emprendedor: int = None,
+    id_convocatoria: int = None,
+    id_tutor: int = None,
+    con_tutores: bool = False,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
+):
+    if con_tutores:
+        csv_file = ExportService.exportar_casos_con_tutores_csv(
+            db=db,
+            current_user=current_user,
+            id_estado=id_estado,
+            tipo_caso=tipo_caso,
+            nombre_estado=nombre_estado,
+            id_emprendedor=id_emprendedor,
+            id_convocatoria=id_convocatoria,
+            id_tutor=id_tutor
+        )
+        nombre_archivo = ExportService.generar_nombre_archivo("casos_con_tutores")
+    else:
+        csv_file = ExportService.exportar_casos_csv(
+            db=db,
+            current_user=current_user,
+            id_estado=id_estado,
+            tipo_caso=tipo_caso,
+            nombre_estado=nombre_estado,
+            id_emprendedor=id_emprendedor,
+            id_convocatoria=id_convocatoria,
+            id_tutor=id_tutor
+        )
+        nombre_archivo = ExportService.generar_nombre_archivo("casos")
+
+    return Response(
+        content=csv_file.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+    )
 
 
 # ============================================================================
@@ -71,17 +132,17 @@ def obtener_caso(
     ).filter(Caso.id_caso == caso_id).first()
 
     if not caso:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Caso no encontrado")
+        raise HTTPException(status_code=404, detail="Caso no encontrado")
 
     if current_user.rol.nombre_rol == "Tutor":
         if not any(asig.id_usuario == current_user.id_usuario for asig in caso.asignaciones):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes acceso a este caso")
+            raise HTTPException(status_code=403, detail="No tienes acceso a este caso")
 
     return caso
 
 
 # ============================================================================
-# CREAR (POST /)
+# CREAR
 # ============================================================================
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=CasoResponse)
 def crear_caso(
@@ -95,21 +156,15 @@ def crear_caso(
     ).first()
 
     if not estado_postulado:
-        estado_postulado = db.query(CatalogoEstados).filter(
-            func.lower(CatalogoEstados.nombre_estado) == "postulado"
-        ).first()
+        raise HTTPException(status_code=500, detail="No existe el estado 'Postulado'.")
 
-    if not estado_postulado:
-        raise HTTPException(status_code=500, detail="No existe el estado por defecto 'Postulado'.")
+    nuevo_caso = Caso(
+        **caso_data.model_dump(exclude={"id_estado"}),
+        id_estado=estado_postulado.id_estado
+    )
 
-    if caso_data.id_emprendedor:
-        emprendedor = db.query(Emprendedor).filter(Emprendedor.id_emprendedor == caso_data.id_emprendedor).first()
-        if not emprendedor:
-            raise HTTPException(status_code=404, detail="Emprendedor no encontrado")
-
-    nuevo_caso = Caso(**caso_data.model_dump(exclude={"id_estado"}), id_estado=estado_postulado.id_estado)
     db.add(nuevo_caso)
-    db.flush()  # Obtener id antes del commit
+    db.flush()
 
     registrar_auditoria_caso(
         db=db,
@@ -125,7 +180,7 @@ def crear_caso(
 
 
 # ============================================================================
-# ACTUALIZAR (PUT /{id})
+# ACTUALIZAR
 # ============================================================================
 @router.put("/{caso_id}", response_model=CasoResponse)
 def actualizar_caso(
@@ -135,6 +190,7 @@ def actualizar_caso(
     current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
     caso = db.query(Caso).filter(Caso.id_caso == caso_id).first()
+
     if not caso:
         raise HTTPException(status_code=404, detail="Caso no encontrado")
 
@@ -142,8 +198,10 @@ def actualizar_caso(
         if not any(asig.id_usuario == current_user.id_usuario for asig in caso.asignaciones):
             raise HTTPException(status_code=403, detail="No tienes acceso a este caso")
 
-    valores_anteriores = {field: getattr(caso, field) for field in caso_data.model_dump(exclude_unset=True)}
-    for field, value in caso_data.model_dump(exclude_unset=True).items():
+    update_data = caso_data.model_dump(exclude_unset=True)
+    valores_anteriores = {k: getattr(caso, k) for k in update_data}
+
+    for field, value in update_data.items():
         setattr(caso, field, value)
 
     if valores_anteriores:
@@ -153,48 +211,8 @@ def actualizar_caso(
             id_usuario=current_user.id_usuario,
             id_caso=caso_id,
             valor_anterior=str(valores_anteriores),
-            valor_nuevo=str(caso_data.model_dump(exclude_unset=True))
+            valor_nuevo=str(update_data)
         )
-
-    db.commit()
-    db.refresh(caso)
-    return caso
-
-
-# ============================================================================
-# CAMBIAR ESTADO (PUT /{id}/cambiar_estado)
-# ============================================================================
-@router.put("/{caso_id}/cambiar_estado", response_model=CasoResponse)
-def cambiar_estado_caso(
-    caso_id: int,
-    nombre_estado: str,
-    tipo_caso: str,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_role(["Admin", "Coordinador"]))
-):
-    caso = db.query(Caso).filter(Caso.id_caso == caso_id).first()
-    if not caso:
-        raise HTTPException(status_code=404, detail="Caso no encontrado")
-
-    estado_catalogo = db.query(CatalogoEstados).filter(
-        CatalogoEstados.nombre_estado == nombre_estado,
-        CatalogoEstados.tipo_caso == tipo_caso
-    ).first()
-
-    if not estado_catalogo:
-        raise HTTPException(status_code=404, detail="Estado no existe para este tipo de caso")
-
-    estado_anterior = caso.estado.nombre_estado if caso.estado else None
-    caso.id_estado = estado_catalogo.id_estado
-
-    registrar_auditoria_caso(
-        db=db,
-        accion="Cambio de estado",
-        id_usuario=current_user.id_usuario,
-        id_caso=caso_id,
-        valor_anterior=f"{estado_anterior} ({caso.estado.tipo_caso})" if caso.estado else None,
-        valor_nuevo=f"{nombre_estado} ({tipo_caso})"
-    )
 
     db.commit()
     db.refresh(caso)
