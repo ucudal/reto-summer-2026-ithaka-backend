@@ -21,7 +21,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Importar el router principal de la API v1
 from app.api.v1.api import api_router
-
 # ============================================================================
 # CREAR APLICACIÓN FASTAPI
 # ============================================================================
