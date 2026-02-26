@@ -79,6 +79,29 @@ INSERT INTO caso (nombre_caso, descripcion, datos_chatbot, id_emprendedor, id_co
  '{"sector":"HealthTech","modelo":"B2C","estado_producto":"Solo idea"}',
  4, 1, 1, '2026-02-10 17:00:00');
 
+-- CATALOGO APOYO
+
+INSERT INTO catalogo_apoyo (nombre, descripcion) VALUES
+('Ningún apoyo adicional (No UCU y no valor estratégico)', ''),
+('IPE Postulación VIN ANII/ANDE', ''),
+('IPE Postulación Semilla ANDE', ''),
+('IPE Emprendedores innovadores ANII', ''),
+('Otros Financiamientos', ''),
+('Programa de incubación general', ''),
+('Cursos de Uruguay Emprendedor', ''),
+('Valida Lab UCU', ''),
+('Mentoría / Tutoría', ''),
+('Ingreso al catálogo de emprendimientos', ''),
+('Acceso a laboratorios (Industrial, Alimentos Química, electrónica, IoT)', ''),
+('Club de beneficios', ''),
+('Centro Ignis (Industrias creativas)', ''),
+('Comunidad UCU', ''),
+('Actividades de Networking', ''),
+('Tema para retos FIT', ''),
+('Becario/s', ''),
+('Sesión de IA (investigación mercado, estrategias, etc)', ''),
+('Otras', '');
+
 
 -- -- =====================================
 -- -- ASIGNACIONES

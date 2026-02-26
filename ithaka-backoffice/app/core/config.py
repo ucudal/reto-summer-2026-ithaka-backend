@@ -11,8 +11,7 @@ class Settings(BaseSettings):
     # JWT - Agregar esto
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1600
     # App
     PROJECT_NAME: str = "Ithaka Backoffice"
     VERSION: str = "1.0.0"
@@ -23,6 +22,8 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore"
     )
+
+
     
     @property
     def DATABASE_URL(self) -> str:

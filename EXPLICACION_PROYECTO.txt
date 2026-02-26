@@ -1,0 +1,859 @@
+================================================================================
+                    ITHAKA BACKOFFICE API - DOCUMENTACIÓN COMPLETA
+================================================================================
+
+FECHA DE CREACIÓN: Febrero 18, 2026
+UNIVERSIDAD: Universidad Católica del Uruguay (UCU)
+CENTRO: Centro de Emprendimiento e Innovación
+PROPÓSITO: API para gestión de postulaciones y proyectos de emprendedores
+
+================================================================================
+1. DESCRIPCIÓN GENERAL DEL PROYECTO
+================================================================================
+
+El proyecto "Ithaka Backoffice API" es una aplicación backend desarrollada en Python
+usando FastAPI que proporciona una interfaz programática (API) para gestionar:
+
+✓ Emprendedores (creadores de proyectos/startups)
+✓ Postulaciones y proyectos de emprendimiento
+✓ Estados y flujo de aprobación de casos
+✓ Convocatorias y programas de apoyo
+✓ Asignación de tutores/mentores a proyectos
+✓ Notas y comentarios sobre casos
+✓ Auditoría de cambios (trazabilidad)
+✓ Usuarios y roles de administración
+
+El sistema está diseñado para integrarse con un chatbot que captura información
+de emprendedores y crea postulaciones automáticamente en el sistema.
+
+================================================================================
+2. ARQUITECTURA TÉCNICA
+================================================================================
+
+TECNOLOGÍA BASE:
+- Lenguaje: Python 3.11+
+- Framework Web: FastAPI (framework moderno y rápido)
+- Base de Datos: PostgreSQL (relacional, productivo)
+- ORM: SQLAlchemy (mapeo objeto-relacional)
+- Validación: Pydantic (validación de datos con tipos)
+- Servidor: Uvicorn (ASGI, asincrónico)
+- Contenedores: Docker y Docker Compose
+
+ARQUITECTURA HEXAGONAL (Capas):
+El proyecto está organizado en capas separadas para mantener el código limpio
+y mantenible:
+
+app/
+├── api/                    ← CAPA DE PRESENTACIÓN
+│   ├── v1/                 (API versión 1)
+│   │   ├── api.py          (Router principal que agrupa todos los endpoints)
+│   │   └── endpoints/      (Cada recurso tiene su archivo de endpoints)
+│   │       ├── emprendedores.py
+│   │       ├── casos.py
+│   │       ├── catalogo_estados.py
+│   │       └── ... (otros recursos)
+│   └── deps.py             (Dependencies inyectadas)
+│
+├── models/                 ← CAPA DE DATOS (ORM)
+│   ├── emprendedor.py      (Mapeo tabla emprendedor)
+│   ├── caso.py             (Mapeo tabla caso)
+│   ├── catalogo_estados.py
+│   └── ... (otros modelos)
+│
+├── schemas/                ← CAPA DE VALIDACIÓN
+│   ├── emprendedor.py      (Schemas Pydantic para emprendedor)
+│   ├── caso.py
+│   └── ... (otros schemas)
+│
+├── db/                     ← CAPA DE BASE DE DATOS
+│   ├── database.py         (Configuración del motor SQLAlchemy)
+│   └── session.py          (Sesiones de base de datos)
+│
+└── core/                   ← CONFIGURACIÓN
+    └── config.py           (Variables de entorno, settings)
+
+main.py                    ← PUNTO DE ENTRADA (crea la app FastAPI)
+
+================================================================================
+3. FLUJO DE UNA SOLICITUD HTTP
+================================================================================
+
+Cuando un cliente (frontend, chatbot, aplicación móvil) hace una solicitud HTTP:
+
+  1. ENTRADA
+     Cliente: GET /api/v1/emprendedores/5
+                     ↓
+  2. ROUTING (main.py)
+     FastAPI recibe la solicitud y la enruta a api_router
+                     ↓
+  3. ROUTING (app/api/v1/api.py)
+     api_router dirige a emprendedores.py (router específico)
+                     ↓
+  4. ENDPOINT (app/api/v1/endpoints/emprendedores.py)
+     def obtener_emprendedor(emprendedor_id: int, db: Session = Depends(get_db))
+     - Valida tipos de datos (emprendedor_id debe ser int)
+     - Inyecta dependencia: db (sesión de base de datos)
+                     ↓
+  5. QUERY (ORM - SQLAlchemy)
+     db.query(Emprendedor).filter(Emprendedor.id_emprendedor == 5).first()
+     - Construye SQL automáticamente
+     - Conecta a PostgreSQL
+     - Recupera el registro de la tabla
+                     ↓
+  6. MAPEO (Model → Schema)
+     El objeto Emprendedor se convierte en EmprendedorResponse
+     usando Pydantic para validación y serialización
+                     ↓
+  7. RESPONSE (JSON)
+     FastAPI devuelve automáticamente JSON al cliente:
+     {
+         "id_emprendedor": 5,
+         "nombre": "Juan Pérez",
+         "email": "juan@example.com",
+         "fecha_registro": "2026-02-18T10:30:00"
+     }
+
+================================================================================
+4. ESTRUCTURA DE MODELOS (BASE DE DATOS)
+================================================================================
+
+La base de datos PostgreSQL tiene las siguientes tablas:
+
+ROL
+├─ id_rol (PRIMARY KEY)
+├─ nombre_rol (UNIQUE)
+Propósito: Define los roles de usuarios (Admin, Gestor, Tutor, etc.)
+
+USUARIO
+├─ id_usuario (PRIMARY KEY)
+├─ nombre
+├─ email (UNIQUE)
+├─ password_hash (contraseña encriptada)
+├─ activo
+└─ id_rol (FOREIGN KEY → rol)
+Propósito: Administradores y personal del Centro de Emprendimiento
+
+EMPRENDEDOR
+├─ id_emprendedor (PRIMARY KEY)
+├─ nombre
+├─ email
+├─ telefono
+├─ vinculo_institucional (ej: "Estudiante UCU", "Egresado")
+└─ fecha_registro
+Propósito: Personas que presentan postulaciones/proyectos
+
+CONVOCATORIA
+├─ id_convocatoria (PRIMARY KEY)
+├─ nombre (ej: "Convocatoria 2026 - Startups Tech")
+└─ fecha_cierre
+Propósito: Llamadas abiertas para presentar proyectos
+
+CATALOGO_ESTADOS
+├─ id_estado (PRIMARY KEY)
+├─ nombre_estado (ej: "En Revisión", "Aprobado", "Rechazado")
+└─ tipo_caso (Postulacion | Proyecto)
+Propósito: Define los estados posibles de los casos
+
+CASO (central, contiene la postulación/proyecto)
+├─ id_caso (PRIMARY KEY)
+├─ fecha_creacion
+├─ nombre_caso
+├─ descripcion
+├─ datos_chatbot (JSON - datos capturados por el chatbot)
+├─ consentimiento_datos
+├─ id_emprendedor (FOREIGN KEY → emprendedor)
+├─ id_convocatoria (FOREIGN KEY → convocatoria, nullable)
+└─ id_estado (FOREIGN KEY → catalogo_estados)
+Propósito: Representa una postulación o proyecto específico
+
+PROGRAMA
+├─ id_programa (PRIMARY KEY)
+├─ nombre (ej: "Incubadora Tech", "Mentoría Ejecutiva")
+└─ activo
+Propósito: Programas de apoyo disponibles
+
+APOYO (asignación de programas a casos)
+├─ id_apoyo (PRIMARY KEY)
+├─ tipo_apoyo
+├─ fecha_inicio
+├─ fecha_fin
+├─ id_caso (FOREIGN KEY → caso)
+└─ id_programa (FOREIGN KEY → programa)
+Propósito: Registra qué programas/apoyos recibe cada caso
+
+ASIGNACION (asignación de tutores a casos)
+├─ id_asignacion (PRIMARY KEY)
+├─ fecha_asignacion
+├─ id_usuario (FOREIGN KEY → usuario)
+└─ id_caso (FOREIGN KEY → caso)
+Propósito: Vincula mentores/tutores con casos para guiarlos
+
+NOTA (comentarios en casos)
+├─ id_nota (PRIMARY KEY)
+├─ contenido
+├─ fecha
+├─ id_usuario (FOREIGN KEY → usuario)
+└─ id_caso (FOREIGN KEY → caso)
+Propósito: Permite que el personal agregue notas sobre los casos
+
+AUDITORIA (registro de cambios)
+├─ id_auditoria (PRIMARY KEY)
+├─ timestamp
+├─ accion (ej: "cambio_estado", "creacion")
+├─ valor_anterior
+├─ valor_nuevo
+├─ id_usuario (FOREIGN KEY → usuario)
+└─ id_caso (FOREIGN KEY → caso)
+Propósito: Trazabilidad completa de cambios en el sistema
+
+================================================================================
+5. CONCEPTOS CLAVE: MODELS, SCHEMAS Y ENDPOINTS
+================================================================================
+
+5.1 MODELS (Archivos en app/models/)
+────────────────────────────────────
+
+Un MODEL es una clase Python que representa una TABLA en la base de datos.
+
+Ejemplo - emprendedor.py:
+
+    from sqlalchemy import Column, Integer, String, DateTime
+    from datetime import datetime
+    from app.db.database import Base
+
+    class Emprendedor(Base):
+        __tablename__ = "emprendedor"
+        
+        id_emprendedor = Column(Integer, primary_key=True, index=True)
+        nombre = Column(String(150), nullable=False)
+        email = Column(String(150), nullable=False)
+        telefono = Column(String(50))
+        vinculo_institucional = Column(String(150))
+        fecha_registro = Column(DateTime, default=datetime.utcnow)
+
+¿Qué hace?
+- Define la estructura de datos en código Python
+- SQLAlchemy convierte esto en SQL automáticamente
+- Permite queries tipo: db.query(Emprendedor).filter(...).all()
+- Las relaciones entre tablas se definen con relationship()
+
+5.2 SCHEMAS (Archivos en app/schemas/)
+──────────────────────────────────────
+
+Un SCHEMA es una clase Pydantic que define VALIDACIÓN y SERIALIZACIÓN.
+
+Ejemplo - emprendedor.py:
+
+    from pydantic import BaseModel, EmailStr, Field
+    from datetime import datetime
+    from typing import Optional
+
+    class EmprendedorBase(BaseModel):
+        nombre: str = Field(..., min_length=1, max_length=150)
+        email: EmailStr
+        telefono: Optional[str] = None
+        vinculo_institucional: Optional[str] = None
+
+    class EmprendedorCreate(EmprendedorBase):
+        pass  # Hereda todos los campos
+
+    class EmprendedorUpdate(BaseModel):
+        nombre: Optional[str] = None
+        email: Optional[EmailStr] = None
+        telefono: Optional[str] = None
+        vinculo_institucional: Optional[str] = None
+
+    class EmprendedorResponse(EmprendedorBase):
+        id_emprendedor: int
+        fecha_registro: datetime
+        class Config:
+            from_attributes = True
+
+¿Qué hace?
+- Valida que los datos recibidos sean correctos (email válido, etc.)
+- Define qué campos se deben devolver en cada operación
+- Genera documentación automática en Swagger
+- EmprendedorCreate: para POST (crear) - sin ID
+- EmprendedorUpdate: para PUT (actualizar) - campos opcionales
+- EmprendedorResponse: para GET (consultar) - incluye ID y timestamps
+
+5.3 ENDPOINTS (Archivos en app/api/v1/endpoints/)
+─────────────────────────────────────────────────
+
+Un ENDPOINT es una función Python que maneja HTTP requests.
+
+Ejemplo - emprendedores.py:
+
+    from fastapi import APIRouter, Depends, HTTPException, status
+    from sqlalchemy.orm import Session
+    from app.api.deps import get_db
+    from app.models import Emprendedor
+    from app.schemas.emprendedor import EmprendedorCreate, EmprendedorResponse
+
+    router = APIRouter()
+
+    @router.get("/")
+    def listar_emprendedores(
+        skip: int = 0,
+        limit: int = 100,
+        db: Session = Depends(get_db)
+    ):
+        emprendedores = db.query(Emprendedor).offset(skip).limit(limit).all()
+        return emprendedores
+
+    @router.post("/", status_code=201)
+    def crear_emprendedor(
+        emprendedor_data: EmprendedorCreate,
+        db: Session = Depends(get_db)
+    ):
+        nuevo = Emprendedor(**emprendedor_data.model_dump())
+        db.add(nuevo)
+        db.commit()
+        db.refresh(nuevo)
+        return nuevo
+
+¿Qué hace?
+- Define rutas HTTP (GET, POST, PUT, DELETE)
+- Valida datos usando schemas
+- Inyecta dependencias (base de datos, autenticación, etc.)
+- Ejecuta lógica de negocio
+- Devuelve respuestas JSON
+
+================================================================================
+6. FLUJO DE DATOS: EJEMPLO PRÁCTICO
+================================================================================
+
+ESCENARIO: Un emprendedor se registra a través del chatbot
+
+1. CHATBOT ENVÍA SOLICITUD:
+   POST /api/v1/emprendedores
+   {
+       "nombre": "Ana García",
+       "email": "ana.garcia@example.com",
+       "telefono": "+598 99 123456",
+       "vinculo_institucional": "Estudiante UCU"
+   }
+
+2. FASTAPI RECIBE Y VALIDA:
+   - Valida el schema EmprendedorCreate
+   - Verifica que email sea válido (EmailStr)
+   - Verifica longitudes de strings (min_length, max_length)
+   - Si hay error, devuelve 400 Bad Request automáticamente
+
+3. SI VALIDA, EJECUTA ENDPOINT:
+   def crear_emprendedor(emprendedor_data: EmprendedorCreate, db: Session):
+       - emprendedor_data es un objeto validado
+       - db es la sesión de base de datos inyectada
+
+4. CREA OBJETO MODEL:
+   nuevo = Emprendedor(
+       nombre="Ana García",
+       email="ana.garcia@example.com",
+       telefono="+598 99 123456",
+       vinculo_institucional="Estudiante UCU"
+       # fecha_registro se genera automáticamente (datetime.utcnow)
+   )
+
+5. GUARDA EN BASE DE DATOS:
+   db.add(nuevo)      # Prepara el INSERT
+   db.commit()        # Ejecuta la transacción SQL
+   db.refresh(nuevo)  # Recarga el objeto (obtiene el ID generado)
+   
+   SQL generado: INSERT INTO emprendedor (...) VALUES (...)
+
+6. CONVIERTE A SCHEMA:
+   EmprendedorResponse(
+       id_emprendedor=42,  # ID asignado por la BD
+       nombre="Ana García",
+       email="ana.garcia@example.com",
+       telefono="+598 99 123456",
+       vinculo_institucional="Estudiante UCU",
+       fecha_registro=datetime.now()
+   )
+
+7. DEVUELVE JSON:
+   HTTP 201 Created
+   {
+       "id_emprendedor": 42,
+       "nombre": "Ana García",
+       "email": "ana.garcia@example.com",
+       "telefono": "+598 99 123456",
+       "vinculo_institucional": "Estudiante UCU",
+       "fecha_registro": "2026-02-18T14:30:00"
+   }
+
+================================================================================
+7. ESTADO DEL DESARROLLO
+================================================================================
+
+IMPLEMENTADO ✓:
+───────────────
+✓ Estructura base del proyecto (carpetas y archivos)
+✓ Configuración FastAPI y CORS
+✓ Modelos SQLAlchemy:
+  - Emprendedor
+  - CatalogoEstados
+  - Caso (con relationships)
+✓ Schemas Pydantic:
+  - Emprendedor (Base, Create, Update, Response, ListResponse)
+  - CatalogoEstados (Base, Create, Update, Response)
+  - Caso (Base, Create, Update, Response)
+✓ Endpoints:
+  - Emprendedores: CRUD completo (GET /, GET /{id}, POST, PUT, DELETE)
+  - CatalogoEstados: CRUD completo
+  - Casos: CRUD + endpoint especial cambiar_estado
+✓ Base de datos:
+  - Dump SQL con todas las tablas (ithaka_backoffice.sql)
+  - Migraciones a PostgreSQL
+✓ Docker:
+  - Dockerfile para contenerizar la API
+  - docker-compose.yml para orquestar API + PostgreSQL
+✓ Documentación:
+  - README.md con instrucciones
+  - GUIA_ENDPOINTS.md con patrones
+  - DEPLOYMENT.md con opciones de cloud
+  - IMPORTAR_BD.md para cargar datos
+✓ CI/CD:
+  - GitHub Actions workflow (ci.yml)
+  - Health checks
+
+PENDIENTE DE IMPLEMENTAR ⚠️:
+─────────────────────────────
+⚠ Modelos:
+  - Rol
+  - Usuario
+  - Convocatoria
+  - Programa
+  - Apoyo
+  - Asignacion
+  - Nota
+  - Auditoria
+
+⚠ Schemas:
+  - Rol
+  - Usuario
+  - Convocatoria
+  - Programa
+  - Apoyo
+  - Asignacion
+  - Nota
+  - Auditoria
+
+⚠ Endpoints:
+  - Rol (CRUD)
+  - Usuario (CRUD + cambiar password, cambiar rol)
+  - Convocatoria (CRUD)
+  - Programa (CRUD)
+  - Apoyo (CRUD + asignar a casos)
+  - Asignacion (CRUD + asignar tutores)
+  - Nota (CRUD + listar por caso)
+  - Auditoria (READ only + filtros)
+  - Stats/Estadísticas (conteos, gráficos)
+
+⚠ Seguridad:
+  - Autenticación (JWT, OAuth2)
+  - Autorización (roles, permisos)
+  - Hash de passwords (bcrypt)
+  - Validación de CORS específica para producción
+  - Rate limiting
+  - HTTPS en producción
+
+⚠ Testing:
+  - Unit tests
+  - Integration tests
+  - Tests de endpoints
+
+⚠ Optimizaciones:
+  - Caching
+  - Índices en base de datos
+  - Paginación avanzada
+  - Filtros complejos
+  - Búsqueda full-text
+
+================================================================================
+8. CÓMO EJECUTAR EL PROYECTO
+================================================================================
+
+OPCIÓN 1: LOCAL SIN DOCKER
+──────────────────────────
+
+1. Crear entorno virtual:
+   python -m venv venv
+   source venv/bin/activate  # En Mac/Linux
+   venv\Scripts\activate      # En Windows
+
+2. Instalar dependencias:
+   pip install -r requirements.txt
+
+3. Crear archivo .env:
+   cp .env.example .env
+   # Editar .env con tus valores
+
+4. Asegurar PostgreSQL corriendo:
+   # Debe estar disponible en localhost:5432
+
+5. Importar dump SQL:
+   psql -U postgres -d ithaka_db < ithaka_backoffice.sql
+
+6. Ejecutar servidor:
+   uvicorn main:app --reload
+
+7. Ver documentación:
+   http://localhost:8000/docs (Swagger UI)
+   http://localhost:8000/redoc (ReDoc)
+
+OPCIÓN 2: CON DOCKER COMPOSE (RECOMENDADO)
+───────────────────────────────────────────
+
+1. Crear archivo .env:
+   cp .env.example .env
+
+2. Iniciar contenedores:
+   docker-compose up
+
+3. En otra terminal, importar BD:
+   docker-compose exec db psql -U postgres -d ithaka_db < ithaka_backoffice.sql
+
+4. Acceder a:
+   - API: http://localhost:8000
+   - Swagger: http://localhost:8000/docs
+   - PostgreSQL: localhost:5432
+
+5. Detener:
+   docker-compose down
+
+================================================================================
+9. VARIABLES DE ENTORNO (.env)
+================================================================================
+
+BASE DE DATOS:
+  POSTGRES_USER=postgres         # Usuario de PostgreSQL
+  POSTGRES_PASSWORD=password     # Contraseña
+  POSTGRES_SERVER=localhost      # Host (en docker: 'db')
+  POSTGRES_PORT=5432            # Puerto
+  POSTGRES_DB=ithaka_db         # Nombre de base de datos
+
+SEGURIDAD:
+  SECRET_KEY=cambiar-esto       # Clave para firmar JWTs
+  ALGORITHM=HS256               # Algoritmo JWT
+  ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+APLICACIÓN:
+  PROJECT_NAME=Ithaka Backoffice
+  VERSION=1.0.0
+  ENVIRONMENT=development (o production)
+
+CORS:
+  ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+
+================================================================================
+10. DEPENDENCIAS DEL PROYECTO
+================================================================================
+
+Web Framework:
+  - fastapi==0.109.0        Framework web asincrónico rápido
+  - uvicorn[standard]==0.27.0 Servidor ASGI
+
+Base de Datos:
+  - sqlalchemy>=2.0.0       ORM para Python
+  - psycopg2-binary>=2.9.0  Adaptador PostgreSQL para Python
+
+Validación:
+  - pydantic[email]==2.5.3         Validación de datos con tipos
+  - pydantic-settings>=2.0.0       Manejo de configuración
+
+Utilidades:
+  - python-multipart==0.0.6 Para procesar form data
+  - python-dotenv>=1.0.0    Cargar variables de .env
+
+Seguridad (para cuando implementen):
+  - passlib[bcrypt]>=1.7.4       Hash de passwords
+  - python-jose[cryptography]>=3.3.0  Tokens JWT
+
+Testing (opcional):
+  - pytest>=7.4.0  Testing framework
+  - httpx>=0.24.0  Cliente HTTP para tests
+
+================================================================================
+11. ARCHIVOS IMPORTANTES
+================================================================================
+
+main.py
+  ├─ Punto de entrada de la aplicación
+  ├─ Crea la instancia FastAPI
+  ├─ Configura CORS
+  ├─ Incluye routers de endpoints
+  └─ Define endpoints básicos (/, /health)
+
+app/api/v1/api.py
+  ├─ Router principal que agrupa todos los routers
+  ├─ Importa routers de endpoints
+  └─ Los incluye con prefijos (/emprendedores, /casos, etc.)
+
+app/api/v1/endpoints/
+  ├─ Contiene un archivo por recurso
+  ├─ Cada archivo define CRUD para ese recurso
+  └─ Usa schemas para validación y modelos para BD
+
+app/models/
+  ├─ Define las tablas como clases Python
+  ├─ SQLAlchemy mapea esto a SQL
+  └─ Se importan automáticamente en __init__.py
+
+app/schemas/
+  ├─ Define validación y serialización Pydantic
+  ├─ Base: campos comunes
+  ├─ Create: para crear (sin ID)
+  ├─ Update: para actualizar (campos opcionales)
+  └─ Response: para devolver (con ID y timestamps)
+
+app/db/database.py
+  ├─ Crea el engine de SQLAlchemy
+  ├─ Define SessionLocal (sesiones)
+  └─ Define Base (clase padre de modelos)
+
+app/db/session.py
+  ├─ Define get_db()
+  └─ Dependency que proporciona sesión de BD a endpoints
+
+app/core/config.py
+  ├─ Lee variables de entorno
+  ├─ Las valida con Pydantic
+  └─ Las exporta como `settings`
+
+docker-compose.yml
+  ├─ Define servicios: db (PostgreSQL) y api (FastAPI)
+  ├─ Configura volúmenes para persistencia
+  └─ Define variables de entorno
+
+Dockerfile
+  ├─ Imagen base: python:3.11-slim
+  ├─ Instala dependencias
+  ├─ Copia código
+  └─ Expone puerto 8000
+
+ithaka_backoffice.sql
+  ├─ Dump completo de la BD
+  ├─ Define todas las tablas
+  └─ Con constraints y foreign keys
+
+================================================================================
+12. ENDPOINTS DISPONIBLES ACTUALMENTE
+================================================================================
+
+EMPRENDEDORES:
+  GET    /api/v1/emprendedores                 Listar todos
+  GET    /api/v1/emprendedores/{id}            Obtener uno
+  POST   /api/v1/emprendedores                 Crear
+  PUT    /api/v1/emprendedores/{id}            Actualizar
+  DELETE /api/v1/emprendedores/{id}            Eliminar
+  GET    /api/v1/emprendedores/{id}/casos      Listar casos del emprendedor
+
+ESTADOS:
+  GET    /api/v1/estados                       Listar todos
+  GET    /api/v1/estados?tipo_caso=Postulacion Filtrar por tipo
+  GET    /api/v1/estados/{id}                  Obtener uno
+  POST   /api/v1/estados                       Crear
+  PUT    /api/v1/estados/{id}                  Actualizar
+  DELETE /api/v1/estados/{id}                  Eliminar
+
+CASOS:
+  GET    /api/v1/casos                         Listar todos
+  GET    /api/v1/casos?tipo_caso=Postulacion   Filtrar por tipo
+  GET    /api/v1/casos?id_emprendedor=5        Filtrar por emprendedor
+  GET    /api/v1/casos/{id}                    Obtener uno
+  POST   /api/v1/casos                         Crear
+  PUT    /api/v1/casos/{id}                    Actualizar
+  DELETE /api/v1/casos/{id}                    Eliminar
+  PUT    /api/v1/casos/{id}/cambiar_estado     Cambiar estado
+
+BÁSICAS:
+  GET    /                                     Info de la API
+  GET    /health                               Health check
+
+================================================================================
+13. PATRONES Y CONVENCIONES
+================================================================================
+
+NOMBRADO:
+  - Modelos: PascalCase (Emprendedor, CatalogoEstados)
+  - Tablas: snake_case (emprendedor, catalogo_estados)
+  - Variables: snake_case (emprendedor_id, nombre_caso)
+  - URLs: kebab-case (ej: cambiar-estado)
+
+ESTRUCTURA DE ARCHIVOS:
+  - 1 archivo por recurso
+  - 1 clase Model por tabla
+  - 3 schemas por recurso (Base, Create/Update, Response)
+  - 1 router con máx 6 endpoints CRUD
+
+ENDPOINTS CRUD ESTÁNDAR:
+  GET    /recurso/          Listar (con paginación)
+  GET    /recurso/{id}      Obtener uno
+  POST   /recurso/          Crear (201 Created)
+  PUT    /recurso/{id}      Actualizar (200 OK)
+  DELETE /recurso/{id}      Eliminar (204 No Content)
+
+VALIDACIÓN:
+  - Email: usar EmailStr de Pydantic
+  - Números: usar validadores (ge, le, gt, lt)
+  - Strings: usar min_length, max_length
+  - Enums: usar Literal["opción1", "opción2"]
+
+ERROR HANDLING:
+  - 400 Bad Request: Datos inválidos
+  - 401 Unauthorized: No autenticado
+  - 403 Forbidden: No autorizado
+  - 404 Not Found: Recurso no existe
+  - 409 Conflict: Violación de constraint (ej: email duplicado)
+  - 500 Internal Server Error: Error del servidor
+
+================================================================================
+14. PRÓXIMOS PASOS SUGERIDOS
+================================================================================
+
+FASE 1: COMPLETAR MODELOS Y SCHEMAS (Semana 1)
+  1. Crear modelos para: Rol, Usuario, Convocatoria, Programa
+  2. Crear modelos para: Apoyo, Asignacion, Nota, Auditoria
+  3. Crear schemas correspondientes
+  4. Importar en __init__.py
+
+FASE 2: IMPLEMENTAR ENDPOINTS BÁSICOS (Semana 2)
+  1. CRUD para cada recurso (siguiendo TEMPLATE.py)
+  2. Probar en Swagger (/docs)
+  3. Usar test_api.sh para tests manuales
+
+FASE 3: AUTENTICACIÓN Y AUTORIZACIÓN (Semana 3)
+  1. Implementar login (JWT)
+  2. Hash de passwords (bcrypt)
+  3. Middleware de autenticación
+  4. Validación de roles en endpoints
+
+FASE 4: ENDPOINTS AVANZADOS (Semana 4)
+  1. Estadísticas y reportes
+  2. Búsqueda con filtros complejos
+  3. Auditoría automática
+  4. Notificaciones
+
+FASE 5: TESTING Y OPTIMIZACIÓN (Semana 5)
+  1. Unit tests
+  2. Integration tests
+  3. Load testing
+  4. Optimizaciones de performance
+
+FASE 6: DEPLOYMENT (Semana 6)
+  1. Elegir plataforma (Render, Railway, AWS, Google Cloud)
+  2. Configurar variables de producción
+  3. HTTPS y certificados
+  4. Monitoreo y alertas
+
+================================================================================
+15. RECURSOS ÚTILES
+================================================================================
+
+DOCUMENTACIÓN:
+  FastAPI: https://fastapi.tiangolo.com
+  SQLAlchemy: https://docs.sqlalchemy.org
+  Pydantic: https://docs.pydantic.dev
+  PostgreSQL: https://www.postgresql.org/docs
+
+HERRAMIENTAS:
+  Swagger UI: http://localhost:8000/docs (mientras corre la API)
+  PostgreSQL: pgAdmin, DBeaver, psql CLI
+  Testing: Postman, Thunder Client (VS Code), curl
+
+GUÍAS EN EL PROYECTO:
+  - GUIA_ENDPOINTS.md: Cómo crear nuevos endpoints
+  - DEPLOYMENT.md: Cómo hacer deploy
+  - IMPORTAR_BD.md: Cómo cargar la base de datos
+  - README.md: Instrucciones de inicio rápido
+
+================================================================================
+16. DECISIONES ARQUITECTÓNICAS
+================================================================================
+
+¿POR QUÉ FASTAPI?
+  ✓ Rápido (asincrónico)
+  ✓ Validación automática (Pydantic)
+  ✓ Documentación automática (Swagger, ReDoc)
+  ✓ Soporte para dependencias inyectadas
+  ✓ Comunidad activa y bien documentado
+
+¿POR QUÉ SQLALCHEMY?
+  ✓ ORM potente y flexible
+  ✓ Soporte para múltiples BD
+  ✓ Relaciones complejas
+  ✓ Queries seguras (previene SQL injection)
+
+¿POR QUÉ POSTGRESQL?
+  ✓ BD relacional sólida
+  ✓ JSONB para datos no estructurados (datos_chatbot)
+  ✓ Escalable para producción
+  ✓ Open source y gratuita
+
+¿POR QUÉ DOCKER?
+  ✓ Desarrollo consistente
+  ✓ Fácil deployment
+  ✓ Escalabilidad
+  ✓ Aislamiento del sistema host
+
+¿POR QUÉ ARQUITECTURA POR CAPAS?
+  ✓ Separación de responsabilidades
+  ✓ Código mantenible y testeable
+  ✓ Facilita agregar nuevas funcionalidades
+  ✓ Diferentes equipos pueden trabajar en paralelo
+
+================================================================================
+17. PREGUNTAS FRECUENTES
+================================================================================
+
+P: ¿Cómo creo un nuevo recurso?
+R: 1. Copia TEMPLATE.py como nuevo_recurso.py
+   2. Define el modelo en models/nuevo_recurso.py
+   3. Define schemas en schemas/nuevo_recurso.py
+   4. Implementa endpoints en endpoints/nuevo_recurso.py
+   5. Incluye el router en api/v1/api.py
+
+P: ¿Cómo agrego validación a un campo?
+R: En el schema Pydantic:
+   campo: type = Field(..., min_length=1, max_length=100)
+
+P: ¿Cómo hago JOIN entre tablas?
+R: db.query(Caso).join(Emprendedor).filter(
+       Emprendedor.id_emprendedor == 5
+   ).all()
+
+P: ¿Cómo implemento autenticación?
+R: Ver GUIA_ENDPOINTS.md y usar passlib + python-jose para JWT
+
+P: ¿Cómo hago deploy?
+R: Ver DEPLOYMENT.md para opciones de cloud (Render, Railway, AWS)
+
+P: ¿Cómo pruebo los endpoints?
+R: 1. Usa Swagger UI en /docs
+   2. O usa Postman/Thunder Client
+   3. O ejecuta test_api.sh
+
+P: ¿Cómo cargo datos a la BD?
+R: Ver IMPORTAR_BD.md para cargar el dump SQL
+
+P: ¿Cómo cambio la configuración?
+R: Edita el archivo .env, se carga automáticamente en app/core/config.py
+
+================================================================================
+CONCLUSIÓN
+================================================================================
+
+Ithaka Backoffice API es un proyecto bien estructurado que proporciona:
+
+✓ Una base sólida para construcción iterativa
+✓ Separación clara entre capas (models, schemas, endpoints)
+✓ Patrones y templates para que el equipo trabaje en paralelo
+✓ Documentación extensa en el código
+✓ Facilidad para agregar nuevas funcionalidades
+✓ Infraestructura lista con Docker
+
+El equipo puede dividir tareas por recursos (cada persona implementa un 
+recurso) siguiendo los templates y guías del proyecto.
+
+================================================================================

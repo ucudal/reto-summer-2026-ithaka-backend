@@ -26,8 +26,12 @@ from app.api.v1.endpoints import (
     programa,
     rol,
     usuario,
-    auth
+    auth,
+    catalogo_apoyos
 )
+
+# Importar el router de métricas correctamente
+from app.api.v1.endpoints.metricas.dashboard import router as metricas_router
 
 # Router principal que agrupa todo
 api_router = APIRouter()
@@ -43,7 +47,13 @@ api_router.include_router(
     tags=["emprendedores"]
 )
 
-# Catálogo de Estados
+ # Catálogo de Apoyos
+api_router.include_router(
+    catalogo_apoyos.router,
+    prefix="/catalogo_apoyos",
+    tags=["catalogo_apoyos"]
+)
+ # Catálogo de Estados
 api_router.include_router(
     catalogo_estados.router,
     prefix="/estados",
@@ -55,6 +65,13 @@ api_router.include_router(
     caso.router,
     prefix="/casos",
     tags=["casos"]
+)
+
+#Metricas
+api_router.include_router(
+    metricas_router,
+    prefix="/metricas",
+    tags=["metricas"],
 )
 
 # Notas
