@@ -12,6 +12,7 @@ from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse
 from app.core.security import require_role
 from app.services.auditoria_service import registrar_auditoria_caso
 from app.services.export_service import ExportService
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter()
 
@@ -164,7 +165,14 @@ def crear_caso(
     )
 
     db.add(nuevo_caso)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError as e:
+        db.rollback()
+        # Detectar error de clave foránea
+        if 'foreign key constraint' in str(e.orig).lower():
+            raise HTTPException(status_code=400, detail="ID de emprendedor, convocatoria o estado inválido. Verifica que existan.")
+        raise HTTPException(status_code=400, detail=str(e.orig))
 
     registrar_auditoria_caso(
         db=db,
