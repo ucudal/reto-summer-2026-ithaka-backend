@@ -101,6 +101,53 @@ def listar_casos(
     return casos_transformados
 
 
+## MOVE EXPORTAR CASOS ABOVE OBTENER UNO
+# =============================================================================
+# EXPORTAR
+# =============================================================================
+@router.get("/export", status_code=status.HTTP_200_OK)
+def exportar_casos(
+    id_estado: Optional[int] = None,
+    tipo_caso: Optional[str] = None,
+    nombre_estado: Optional[str] = None,
+    id_emprendedor: Optional[int] = None,
+    id_convocatoria: Optional[int] = None,
+    id_tutor: Optional[int] = None,
+    con_tutores: bool = False,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
+):
+    if con_tutores:
+        csv_file = ExportService.exportar_casos_con_tutores_csv(
+            db=db,
+            current_user=current_user,
+            id_estado=id_estado,
+            tipo_caso=tipo_caso,
+            nombre_estado=nombre_estado,
+            id_emprendedor=id_emprendedor,
+            id_convocatoria=id_convocatoria,
+            id_tutor=id_tutor
+        )
+        nombre_archivo = ExportService.generar_nombre_archivo("casos_con_tutores")
+    else:
+        csv_file = ExportService.exportar_casos_csv(
+            db=db,
+            current_user=current_user,
+            id_estado=id_estado,
+            tipo_caso=tipo_caso,
+            nombre_estado=nombre_estado,
+            id_emprendedor=id_emprendedor,
+            id_convocatoria=id_convocatoria,
+            id_tutor=id_tutor
+        )
+        nombre_archivo = ExportService.generar_nombre_archivo("casos")
+
+    return Response(
+        content=csv_file.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+    )
+
 # =============================================================================
 # OBTENER UNO
 # =============================================================================
@@ -162,51 +209,7 @@ def obtener_caso(
     return custom_case
 
 
-# =============================================================================
-# EXPORTAR
-# =============================================================================
-@router.get("/export", status_code=status.HTTP_200_OK)
-def exportar_casos(
-    id_estado: Optional[int] = None,
-    tipo_caso: Optional[str] = None,
-    nombre_estado: Optional[str] = None,
-    id_emprendedor: Optional[int] = None,
-    id_convocatoria: Optional[int] = None,
-    id_tutor: Optional[int] = None,
-    con_tutores: bool = False,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
-):
-    if con_tutores:
-        csv_file = ExportService.exportar_casos_con_tutores_csv(
-            db=db,
-            current_user=current_user,
-            id_estado=id_estado,
-            tipo_caso=tipo_caso,
-            nombre_estado=nombre_estado,
-            id_emprendedor=id_emprendedor,
-            id_convocatoria=id_convocatoria,
-            id_tutor=id_tutor
-        )
-        nombre_archivo = ExportService.generar_nombre_archivo("casos_con_tutores")
-    else:
-        csv_file = ExportService.exportar_casos_csv(
-            db=db,
-            current_user=current_user,
-            id_estado=id_estado,
-            tipo_caso=tipo_caso,
-            nombre_estado=nombre_estado,
-            id_emprendedor=id_emprendedor,
-            id_convocatoria=id_convocatoria,
-            id_tutor=id_tutor
-        )
-        nombre_archivo = ExportService.generar_nombre_archivo("casos")
 
-    return Response(
-        content=csv_file.getvalue(),
-        media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
-    )
 
 
 
