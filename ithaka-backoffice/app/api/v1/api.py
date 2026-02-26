@@ -27,9 +27,11 @@ from app.api.v1.endpoints import (
     rol,
     usuario,
     auth,
-    catalogo_apoyos,
-    metricas_router
+    catalogo_apoyos
 )
+
+# Importar el router de métricas correctamente
+from app.api.v1.endpoints.metricas.dashboard import router as metricas_router
 
 # Router principal que agrupa todo
 api_router = APIRouter()
