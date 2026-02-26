@@ -87,11 +87,18 @@ def listar_casos(
             convocatoria = db.query(Convocatoria).filter(Convocatoria.id_convocatoria == id_convocatoria).first()
             convocatoria_nombre = convocatoria.nombre if convocatoria else None
 
+        id_asignacion = "Sin Asignar"
+        id_usuario_tutor = "Sin Asignar"
         asignacion = db.query(Asignacion).filter(Asignacion.id_caso == id_caso).first()
+        if asignacion:
+            id_asignacion = asignacion.id_asignacion
+            id_usuario_tutor = asignacion.id_usuario
         tutor = "Sin asignar"
+        tutor_nombre = "Sin asignar"
         if asignacion:
             tutor = db.query(Usuario).filter(Usuario.id_usuario == asignacion.id_usuario).first()
-            tutor = f"{tutor.nombre} {tutor.apellido}" if tutor else None
+            tutor_nombre = f"{tutor.nombre} {tutor.apellido}" if tutor else None
+
 
         # Armar el dict personalizado
         custom_caso = {
@@ -105,7 +112,9 @@ def listar_casos(
             "emprendedor": emprendedor_nombre,
             "convocatoria": convocatoria_nombre,
             "datos_chatbot": caso.datos_chatbot,
-            "tutor": tutor
+            "tutor_nombre": tutor_nombre,
+            "id_tutor": id_usuario_tutor,
+            "asignacion": id_asignacion
         }
         casos_transformados.append(custom_caso)
     
@@ -183,7 +192,14 @@ def obtener_caso(
         apoyo = "Sin apoyo asignado"     
     
     # Obtener tutor asignado
+    id_asignacion = "Sin Asignar"
+    id_usuario_tutor = "Sin Asignar"
+
     asignacion = db.query(Asignacion).filter(Asignacion.id_caso == caso_id).first()
+    if asignacion:
+        id_asignacion = asignacion.id_asignacion
+        id_usuario_tutor = asignacion.id_usuario
+    tutor = "Sin asignar"
     tutor_nombre = "Sin asignar"
     if asignacion:
         tutor = db.query(Usuario).filter(Usuario.id_usuario == asignacion.id_usuario).first()
@@ -201,7 +217,9 @@ def obtener_caso(
         "nombre_caso": caso.nombre_caso,
         "datos_chatbot": caso.datos_chatbot,
         "programa_apoyo": apoyo,
-        "tutor": tutor_nombre
+        "tutor": tutor_nombre,
+        "id_tutor": id_usuario_tutor,
+        "asignacion": id_asignacion
     }
     return custom_case
 
