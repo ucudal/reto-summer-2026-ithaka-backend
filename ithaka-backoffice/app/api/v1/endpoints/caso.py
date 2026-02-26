@@ -14,6 +14,8 @@ from app.models.programa import Programa
 from app.models.apoyo import Apoyo
 from app.core.security import get_current_user, require_role
 from app.services.auditoria_service import registrar_auditoria_caso
+from fastapi import BackgroundTasks
+from app.api.v1.endpoints.notications import notificar_cambio_estado
 from app.models.asignacion import Asignacion
 from app.models.emprendedor import Emprendedor
 
@@ -277,7 +279,6 @@ def crear_caso(
                 detail=f"Emprendedor con ID {caso_data.id_emprendedor} no encontrado"
             )
 
-    nuevo_caso = Caso(**caso_data.model_dump())
 
     db.add(nuevo_caso)
     db.flush()  # Para obtener el id_caso antes del commit
@@ -399,7 +400,8 @@ def cambiar_estado_caso(
     nombre_estado: str,  # "En Revisión", "Aprobado", etc
     tipo_caso: str,      # "Postulacion" o "Proyecto"
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_role(["Admin", "Coordinador"]))
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador"])),
+    background_tasks: BackgroundTasks = None
 ):
     """
     Cambiar el estado de un caso
@@ -443,10 +445,17 @@ def cambiar_estado_caso(
         valor_nuevo=f"{nombre_estado} ({tipo_caso})"
     )
     
+
     db.commit()
     db.refresh(caso)
-    
+    try:
+        if background_tasks is not None:
+            background_tasks.add_task(notificar_cambio_estado, caso_id, nombre_estado)
+    except Exception:
+        pass
+
     return caso
+
 
 
 

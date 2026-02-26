@@ -14,7 +14,7 @@ Endpoints:
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -23,6 +23,7 @@ from app.models.usuario import Usuario
 from app.models.caso import Caso
 from app.schemas.asignacion import AsignacionCreate, AsignacionUpdate, AsignacionResponse
 from app.services.auditoria_service import registrar_auditoria_caso
+from app.api.v1.endpoints.notications import notificar_cambio_asignacion
 from app.core.security import require_role
 
 router = APIRouter()
@@ -122,7 +123,8 @@ def listar_asignaciones_por_usuario(
 def crear_asignacion(
     asignacion_data: AsignacionCreate,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"])),
+    background_tasks: BackgroundTasks = None
 ):
     """
     Crear una nueva asignación de tutor a un caso (todos los roles)
@@ -191,7 +193,12 @@ def crear_asignacion(
     
     db.commit()
     db.refresh(nueva_asignacion)
-    
+    try:
+        if background_tasks is not None:
+            background_tasks.add_task(notificar_cambio_asignacion, nueva_asignacion.id_asignacion)
+    except Exception:
+        pass
+
     return nueva_asignacion
 
 
