@@ -45,16 +45,14 @@ def listar_usuarios(
     current_user: Usuario = Depends(require_role(["Admin", "Coordinador"]))
 ):
     """
-    Listar todos los usuarios activos
-    
-    Permisos:
-    - Admin: Puede ver todos los usuarios
-    - Coordinador: Puede ver todos los usuarios
-    - Tutor: NO puede listar usuarios
+    Listar todos los usuarios (activos e inactivos)
     """
-    usuarios = db.query(Usuario).filter(
-        Usuario.activo == True
-    ).offset(skip).limit(limit).all()
+
+    usuarios = db.query(Usuario)\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
+
     return usuarios
 
 # ============================================================================
