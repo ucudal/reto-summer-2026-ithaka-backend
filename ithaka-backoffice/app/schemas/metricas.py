@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+
 
 class EstadoDistribucion(BaseModel):
     id_estado: int
@@ -7,22 +8,24 @@ class EstadoDistribucion(BaseModel):
     cantidad: int
     porcentaje: float
 
-class EstadoTiempoPromedio(BaseModel):
-    id_estado: int
-    nombre_estado: str
-    promedio_dias: float
 
 class ApoyoDistribucion(BaseModel):
     label: str
     cantidad: int
 
+
+class TotalesDashboard(BaseModel):
+    total_postulaciones: int
+    total_proyectos: int
+    total_proyectos_incubados: int
+    total_tutores: int
+    total_emprendedores: int
+    total_apoyos: int
+
+
 class DashboardMetricasResponse(BaseModel):
-    filtros: dict
-    total_casos: int
-
-    distribucion_por_estado: List[EstadoDistribucion]
-
-    tiempo_promedio_global_dias: Optional[float]
-    tiempos_promedio_por_estado: List[EstadoTiempoPromedio]
-
+    filtros: Dict[str, Any]
+    totales: TotalesDashboard
+    proyectos_por_estado: List[EstadoDistribucion]
+    postulaciones_por_estado: List[EstadoDistribucion]
     distribucion_apoyos: List[ApoyoDistribucion]

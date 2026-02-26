@@ -11,4 +11,4 @@ class Convocatoria(Base):
     nombre = Column(String(150), nullable=False)
     fecha_cierre = Column(DateTime, nullable=True)
 
-    casos = relationship("Caso", backref="convocatoria", lazy="selectin")
+    casos = relationship("Caso", back_populates="convocatoria", lazy="selectin")

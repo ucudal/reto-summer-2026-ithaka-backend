@@ -14,6 +14,8 @@ Columnas según SQL:
 from sqlalchemy import Column, Integer, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from app.db.database import Base
+from sqlalchemy.orm import relationship
+
 
 
 class Asignacion(Base):
@@ -26,3 +28,10 @@ class Asignacion(Base):
     # Foreign Keys
     id_usuario = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False)
     id_caso = Column(Integer, ForeignKey("caso.id_caso"), nullable=False)
+
+
+    # Relación con Usuario
+    usuario = relationship("Usuario", backref="asignaciones")
+
+    # Relación con Caso
+    caso = relationship("Caso", back_populates="asignaciones")
