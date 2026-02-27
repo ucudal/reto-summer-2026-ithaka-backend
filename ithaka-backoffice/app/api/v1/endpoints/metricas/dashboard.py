@@ -20,21 +20,21 @@ from app.schemas.metricas import (
 
 router = APIRouter()
 
-POSTULACION_ORDER = ["Postulado", "En Revisión", "Evaluación", "Rechazado", "Aprobada"]
-PROYECTO_ORDER = ["Recibida", "En evaluación", "Incubado", "Proyecto activo", "Cerrado"]
+POSTULACION_ORDER = ["postulado", "en revisión", "evaluación", "rechazado", "aprobada"]
+PROYECTO_ORDER = ["recibida", "en evaluación", "incubado", "proyecto activo", "cerrado"]
 
 
 def _order_expr_por_tipo(tipo_caso: Optional[str]):
-    if tipo_caso == "Postulacion":
+    if tipo_caso and tipo_caso.lower() == "postulacion":
         return case(
             {name: idx for idx, name in enumerate(POSTULACION_ORDER)},
-            value=CatalogoEstados.nombre_estado,
+            value=func.lower(CatalogoEstados.nombre_estado),
             else_=999,
         )
-    if tipo_caso == "Proyecto":
+    if tipo_caso and tipo_caso.lower() == "proyecto":
         return case(
             {name: idx for idx, name in enumerate(PROYECTO_ORDER)},
-            value=CatalogoEstados.nombre_estado,
+            value=func.lower(CatalogoEstados.nombre_estado),
             else_=999,
         )
     return CatalogoEstados.id_estado.asc()
@@ -51,7 +51,7 @@ def _distribucion_por_estado(db: Session, tipo_caso: str, id_convocatoria: Optio
         )
         .select_from(Caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
-        .filter(CatalogoEstados.tipo_caso == tipo_caso)
+        .filter(func.lower(CatalogoEstados.tipo_caso) == tipo_caso.lower())
     )
 
     if id_convocatoria:
@@ -89,7 +89,7 @@ def _distribucion_apoyos(db: Session, id_convocatoria: Optional[int]) -> List[Ap
         .join(Caso, Apoyo.id_caso == Caso.id_caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
         # apoyos se asocian a casos tipo Proyecto (si en tu data también hay apoyos en Postulacion, sacá este filtro)
-        .filter(CatalogoEstados.tipo_caso == "Proyecto")
+        .filter(func.lower(CatalogoEstados.tipo_caso) == "proyecto")
     )
 
     if id_convocatoria:
@@ -118,7 +118,7 @@ def dashboard_metricas(
         db.query(func.count(Caso.id_caso))
         .select_from(Caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
-        .filter(CatalogoEstados.tipo_caso == "Postulacion")
+        .filter(func.lower(CatalogoEstados.tipo_caso) == "postulacion")
     )
     if id_convocatoria:
         q_post = q_post.filter(Caso.id_convocatoria == id_convocatoria)
@@ -129,7 +129,7 @@ def dashboard_metricas(
         db.query(func.count(Caso.id_caso))
         .select_from(Caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
-        .filter(CatalogoEstados.tipo_caso == "Proyecto")
+        .filter(func.lower(CatalogoEstados.tipo_caso) == "proyecto")
     )
     if id_convocatoria:
         q_proy = q_proy.filter(Caso.id_convocatoria == id_convocatoria)
@@ -140,7 +140,7 @@ def dashboard_metricas(
         db.query(func.count(Caso.id_caso))
         .select_from(Caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
-        .filter(CatalogoEstados.tipo_caso == "Proyecto")
+        .filter(func.lower(CatalogoEstados.tipo_caso) == "proyecto")
         .filter(func.lower(CatalogoEstados.nombre_estado) == "incubado")
     )
     if id_convocatoria:

@@ -5,6 +5,7 @@ from io import StringIO
 from typing import Optional
 
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 
 from app.models.asignacion import Asignacion
 from app.models.caso import Caso
@@ -63,9 +64,9 @@ class ExportService:
         if id_convocatoria is not None:
             query = query.filter(Caso.id_convocatoria == id_convocatoria)
         if tipo_caso is not None:
-            query = query.filter(CatalogoEstados.tipo_caso == tipo_caso)
+            query = query.filter(func.lower(CatalogoEstados.tipo_caso) == tipo_caso.lower())
         if nombre_estado is not None:
-            query = query.filter(CatalogoEstados.nombre_estado == nombre_estado)
+            query = query.filter(func.lower(CatalogoEstados.nombre_estado) == nombre_estado.lower())
 
         if necesita_join_asignacion:
             query = query.distinct()

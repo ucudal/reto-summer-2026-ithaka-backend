@@ -60,12 +60,12 @@ def listar_casos(
 
     if tipo_caso:
         query = query.join(Caso.estado).filter(
-            CatalogoEstados.tipo_caso == tipo_caso
+            func.lower(CatalogoEstados.tipo_caso) == tipo_caso.lower()
         )
 
     if nombre_estado:
         query = query.join(Caso.estado).filter(
-            CatalogoEstados.nombre_estado == nombre_estado
+            func.lower(CatalogoEstados.nombre_estado) == nombre_estado.lower()
         )
 
     casos = query.offset(skip).limit(limit).all()
