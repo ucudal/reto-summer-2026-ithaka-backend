@@ -23,6 +23,7 @@ class Nota(Base):
 
     id_nota = Column(Integer, primary_key=True, index=True)
     contenido = Column(Text, nullable=False)
+    tipo_nota = Column(Text, nullable=False)
     fecha = Column(DateTime, default=datetime.utcnow)
     id_usuario = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=False)
     id_caso = Column(Integer, ForeignKey("caso.id_caso"), nullable=False)
