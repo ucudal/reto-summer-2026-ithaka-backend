@@ -10,9 +10,9 @@ class CatalogoEstadosBase(BaseModel):
         examples=["En Revisión", "Aprobado", "Rechazado"]
     )
     
-    tipo_caso: Literal["Postulacion", "Proyecto"] = Field(
+    tipo_caso: Literal["postulacion", "proyecto"] = Field(
         ...,
-        description="Tipo de caso al que aplica este estado"
+        description="Tipo de caso al que aplica este estado (en minúsculas)"
     )
 
 
