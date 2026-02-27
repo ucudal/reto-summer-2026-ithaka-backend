@@ -22,6 +22,12 @@ class NotaBase(BaseModel):
         min_length=1,
         description="Contenido de la nota"
     )
+    tipo_nota: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Tipo de la nota (ej: 'Seguimiento', 'Comentario', etc.)"
+    )
     id_usuario: int = Field(
         ...,
         description="ID del usuario que registra la nota"
@@ -33,11 +39,20 @@ class NotaBase(BaseModel):
 
 
 class NotaCreate(NotaBase):
-    pass
+    class Config:
+        schema_extra = {
+            "example": {
+                "contenido": "Ejemplo de nota",
+                "tipo_nota": "Seguimiento",
+                "id_usuario": 1,
+                "id_caso": 1
+            }
+        }
 
 
 class NotaUpdate(BaseModel):
     contenido: Optional[str] = Field(None, min_length=1)
+    tipo_nota: Optional[str] = Field(None, min_length=1, max_length=50)
     id_usuario: Optional[int] = None
     id_caso: Optional[int] = None
 
