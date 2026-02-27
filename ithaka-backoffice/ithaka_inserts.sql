@@ -39,7 +39,7 @@ INSERT INTO convocatoria (nombre, fecha_cierre) VALUES
 -- =====================================
 INSERT INTO catalogo_estados (nombre_estado, tipo_caso) VALUES 
 ('Postulado', 'postulacion'),
-('En evaluación', 'postulacion'),
+('En evaluacion', 'postulacion'),
 ('En programa', 'proyecto'),
 ('Activo', 'proyecto'),
 ('Finalizado', 'proyecto'),
