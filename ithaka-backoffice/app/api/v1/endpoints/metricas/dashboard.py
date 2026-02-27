@@ -10,6 +10,7 @@ from app.models.apoyo import Apoyo
 from app.models.emprendedor import Emprendedor
 from app.models.asignacion import Asignacion
 from app.models.usuario import Usuario
+from app.models.rol import Rol
 
 from app.schemas.metricas import (
     DashboardMetricasResponse,
@@ -151,8 +152,8 @@ def dashboard_metricas(
     # (si tu modelo es Usuario -> Rol, esto asume relación usuario.rol.nombre_rol)
     total_tutores = int(
         db.query(func.count(Usuario.id_usuario))
-        .join(Usuario.rol)
-        .filter(func.lower(Usuario.rol.nombre_rol) == "tutor")
+        .join(Rol, Usuario.id_rol == Rol.id_rol)
+        .filter(func.lower(Rol.nombre_rol) == "tutor")
         .scalar()
         or 0
     )
