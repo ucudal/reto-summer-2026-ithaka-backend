@@ -19,14 +19,14 @@ from app.api.deps import get_db
 from app.models.nota import Nota
 from app.models.asignacion import Asignacion
 from app.models.usuario import Usuario
-from app.schemas.nota import NotaCreate, NotaUpdate
+from app.schemas.nota import NotaCreate, NotaUpdate, NotaResponse
 from app.services.auditoria_service import registrar_auditoria_caso
 from app.core.security import require_role
 
 router = APIRouter()
 
 
-@router.get("/", status_code=status.HTTP_200_OK)
+@router.get("/", status_code=status.HTTP_200_OK, response_model=list[NotaResponse])
 def listar_notas(
     skip: int = 0,
     limit: int = 100,
@@ -61,7 +61,7 @@ def listar_notas(
     return notas
 
 
-@router.get("/{nota_id}", status_code=status.HTTP_200_OK)
+@router.get("/{nota_id}", status_code=status.HTTP_200_OK, response_model=NotaResponse)
 def obtener_nota(
     nota_id: int,
     db: Session = Depends(get_db),
@@ -97,7 +97,7 @@ def obtener_nota(
     return nota
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=NotaResponse)
 def crear_nota(
     nota_data: NotaCreate,
     db: Session = Depends(get_db),
@@ -121,7 +121,14 @@ def crear_nota(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes acceso a este caso"
             )
-    
+
+    # Validación explícita de tipo_nota
+    if not nota_data.tipo_nota or not nota_data.tipo_nota.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El campo 'tipo_nota' es obligatorio."
+        )
+
     nueva_nota = Nota(**nota_data.model_dump())
     db.add(nueva_nota)
     db.flush()
@@ -134,6 +141,7 @@ def crear_nota(
         valor_nuevo={
             "id_nota": nueva_nota.id_nota,
             "contenido": nueva_nota.contenido,
+            "tipo_nota": nueva_nota.tipo_nota,
             "id_usuario": nueva_nota.id_usuario,
             "id_caso": nueva_nota.id_caso,
         },
@@ -145,7 +153,7 @@ def crear_nota(
     return nueva_nota
 
 
-@router.put("/{nota_id}", status_code=status.HTTP_200_OK)
+@router.put("/{nota_id}", status_code=status.HTTP_200_OK, response_model=NotaResponse)
 def actualizar_nota(
     nota_id: int,
     nota_data: NotaUpdate,

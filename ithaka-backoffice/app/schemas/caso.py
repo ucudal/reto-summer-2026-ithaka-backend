@@ -66,6 +66,13 @@ class CasoResponse(CasoBase):
     """Schema para respuesta (GET)"""
     id_caso: int = Field(..., description="ID único del caso")
     fecha_creacion: datetime = Field(..., description="Fecha de creación del caso")
+    nombre_estado: Optional[str] = Field(None, description="Nombre del estado actual")
+    tipo_caso: Optional[str] = Field(None, description="Tipo de caso")
+    emprendedor: Optional[str] = Field(None, description="Nombre completo del emprendedor")
+    convocatoria: Optional[str] = Field(None, description="Nombre de la convocatoria")
+    tutor_nombre: Optional[str] = Field(None, description="Nombre completo del tutor")
+    id_tutor: Optional[Any] = Field(None, description="ID del tutor o 'Sin Asignar'")
+    asignacion: Optional[Any] = Field(None, description="ID de la asignación o 'Sin Asignar'")
     
     class Config:
         from_attributes = True
