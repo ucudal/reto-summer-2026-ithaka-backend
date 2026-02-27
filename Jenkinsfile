@@ -2,15 +2,16 @@ pipeline {
     agent any
 
     environment {
-        REPO_URL          = "https://github.com/ucudal/reto-summer-2026-ithaka-backend.git"
-        BRANCH            = "main"
-        IMAGE_NAME        = "ithaka-api"
-        IMAGE_TAG         = "${BUILD_NUMBER}"
-        REGISTRY_INTERNAL = "registry-service.ticket-platform.svc.cluster.local:5000"
-        NAMESPACE         = "ticket-platform"
-
-        DEPLOYMENT_NAME   = "ithaka-api"
-        CONTAINER_NAME    = "ithaka-api"
+        REGISTRY_INTERNAL = 'registry-service.ticket-platform.svc.cluster.local:5000'
+        REGISTRY_EXTERNAL = 'registry.reto-ucu.net' 
+        
+        IMAGE_NAME    = 'ithaka-api'
+        IMAGE_TAG     = "${env.BUILD_NUMBER}"
+        NAMESPACE     = 'ticket-platform'
+        
+        REPO_URL      = 'https://github.com/ucudal/reto-summer-2026-ithaka-backend.git'
+        BRANCH        = 'main'
+        BUILD_CONTEXT = '/workspace/ithaka-backoffice'
     }
 
     stages {
