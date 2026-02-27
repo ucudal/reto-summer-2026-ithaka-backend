@@ -10,7 +10,8 @@ from app.models.apoyo import Apoyo
 from app.models.emprendedor import Emprendedor
 from app.models.asignacion import Asignacion
 from app.models.usuario import Usuario
-from app.models.rol import Rol
+from app.models.rol import Rol 
+
 
 from app.schemas.metricas import (
     DashboardMetricasResponse,
@@ -80,7 +81,6 @@ def _distribucion_por_estado(db: Session, tipo_caso: str, id_convocatoria: Optio
 
 
 def _distribucion_apoyos(db: Session, id_convocatoria: Optional[int]) -> List[ApoyoDistribucion]:
-    # Distribución por tipo_apoyo (lo que muestra tu gráfico: ValidaLab, Mentoría, etc)
     q = (
         db.query(
             Apoyo.tipo_apoyo.label("label"),
@@ -89,6 +89,7 @@ def _distribucion_apoyos(db: Session, id_convocatoria: Optional[int]) -> List[Ap
         .select_from(Apoyo)
         .join(Caso, Apoyo.id_caso == Caso.id_caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
+        .filter(CatalogoEstados.tipo_caso == "Proyecto")
         # apoyos se asocian a casos tipo Proyecto (si en tu data también hay apoyos en Postulacion, sacá este filtro)
         .filter(func.lower(CatalogoEstados.tipo_caso) == "proyecto")
     )
@@ -114,7 +115,6 @@ def dashboard_metricas(
     # TOTALES (cards)
     # ============================================================
 
-    # total postulaciones = casos cuyo estado es tipo_caso "Postulacion"
     q_post = (
         db.query(func.count(Caso.id_caso))
         .select_from(Caso)
@@ -125,7 +125,6 @@ def dashboard_metricas(
         q_post = q_post.filter(Caso.id_convocatoria == id_convocatoria)
     total_postulaciones = int(q_post.scalar() or 0)
 
-    # total proyectos = casos cuyo estado es tipo_caso "Proyecto"
     q_proy = (
         db.query(func.count(Caso.id_caso))
         .select_from(Caso)
@@ -136,7 +135,6 @@ def dashboard_metricas(
         q_proy = q_proy.filter(Caso.id_convocatoria == id_convocatoria)
     total_proyectos = int(q_proy.scalar() or 0)
 
-    # total proyectos incubados = proyectos con estado nombre_estado == "Incubado"
     q_inc = (
         db.query(func.count(Caso.id_caso))
         .select_from(Caso)
@@ -148,8 +146,6 @@ def dashboard_metricas(
         q_inc = q_inc.filter(Caso.id_convocatoria == id_convocatoria)
     total_proyectos_incubados = int(q_inc.scalar() or 0)
 
-    # total tutores = usuarios con rol "Tutor"
-    # (si tu modelo es Usuario -> Rol, esto asume relación usuario.rol.nombre_rol)
     total_tutores = int(
         db.query(func.count(Usuario.id_usuario))
         .join(Rol, Usuario.id_rol == Rol.id_rol)
@@ -158,10 +154,8 @@ def dashboard_metricas(
         or 0
     )
 
-    # total emprendedores = cantidad de emprendedores
     total_emprendedores = int(db.query(func.count(Emprendedor.id_emprendedor)).scalar() or 0)
 
-    # total apoyos = cantidad de apoyos
     q_ap = db.query(func.count(Apoyo.id_apoyo)).select_from(Apoyo).join(Caso, Apoyo.id_caso == Caso.id_caso)
     if id_convocatoria:
         q_ap = q_ap.filter(Caso.id_convocatoria == id_convocatoria)
@@ -176,9 +170,6 @@ def dashboard_metricas(
         total_apoyos=total_apoyos,
     )
 
-    # ============================================================
-    # GRAFICAS
-    # ============================================================
     proyectos_por_estado = _distribucion_por_estado(db, "Proyecto", id_convocatoria)
     postulaciones_por_estado = _distribucion_por_estado(db, "Postulacion", id_convocatoria)
     distribucion_apoyos = _distribucion_apoyos(db, id_convocatoria)
