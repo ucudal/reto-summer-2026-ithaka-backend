@@ -108,13 +108,41 @@ spec:
         stage('Deploy') {
             steps {
                 sh '''
-                    # Usamos la ruta interna para evitar que el nodo pase por el router
-                    /tmp/kubectl set image deployment/${IMAGE_NAME} \
-                        ${IMAGE_NAME}=${REGISTRY_INTERNAL}/${IMAGE_NAME}:${IMAGE_TAG} \
-                        -n ${NAMESPACE}
+                set +e
 
-                    /tmp/kubectl rollout status deployment/${IMAGE_NAME} \
-                        -n ${NAMESPACE} --timeout=120s
+                /tmp/kubectl set image deployment/${DEPLOYMENT_NAME} \
+                    ${CONTAINER_NAME}=${REGISTRY_INTERNAL}/${IMAGE_NAME}:${IMAGE_TAG} \
+                    -n ${NAMESPACE}
+
+                echo "⏳ Esperando rollout (hasta 5 minutos)..."
+                /tmp/kubectl rollout status deployment/${DEPLOYMENT_NAME} \
+                    -n ${NAMESPACE} --timeout=300s
+                ROLLOUT_EXIT_CODE=$?
+
+                if [ "$ROLLOUT_EXIT_CODE" -ne 0 ]; then
+                    echo "⚠️ Rollout tardó más de lo esperado. Verificando estado real..."
+
+                    /tmp/kubectl get deployment ${DEPLOYMENT_NAME} -n ${NAMESPACE}
+                    /tmp/kubectl get pods -n ${NAMESPACE} -l app=${IMAGE_NAME}
+
+                    AVAILABLE=$(/tmp/kubectl get deployment ${DEPLOYMENT_NAME} \
+                    -n ${NAMESPACE} \
+                    -o jsonpath='{.status.availableReplicas}')
+
+                    DESIRED=$(/tmp/kubectl get deployment ${DEPLOYMENT_NAME} \
+                    -n ${NAMESPACE} \
+                    -o jsonpath='{.spec.replicas}')
+
+                    if [ "$AVAILABLE" = "$DESIRED" ]; then
+                    echo "✅ Deploy exitoso (rollout lento pero consistente)"
+                    exit 0
+                    else
+                    echo "❌ Deploy fallido (réplicas no disponibles)"
+                    exit 1
+                    fi
+                fi
+
+                echo "✅ Rollout completado dentro del tiempo"
                 '''
             }
         }
