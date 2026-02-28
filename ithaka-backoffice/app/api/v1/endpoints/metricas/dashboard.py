@@ -10,6 +10,8 @@ from app.models.apoyo import Apoyo
 from app.models.emprendedor import Emprendedor
 from app.models.asignacion import Asignacion
 from app.models.usuario import Usuario
+from app.models.rol import Rol 
+
 
 from app.schemas.metricas import (
     DashboardMetricasResponse,
@@ -20,21 +22,21 @@ from app.schemas.metricas import (
 
 router = APIRouter()
 
-POSTULACION_ORDER = ["Postulado", "En Revisión", "Evaluación", "Rechazado", "Aprobada"]
-PROYECTO_ORDER = ["Recibida", "En evaluación", "Incubado", "Proyecto activo", "Cerrado"]
+POSTULACION_ORDER = ["postulado", "en revisión", "evaluación", "rechazado", "aprobada"]
+PROYECTO_ORDER = ["recibida", "en evaluación", "incubado", "proyecto activo", "cerrado"]
 
 
 def _order_expr_por_tipo(tipo_caso: Optional[str]):
-    if tipo_caso == "Postulacion":
+    if tipo_caso and tipo_caso.lower() == "postulacion":
         return case(
             {name: idx for idx, name in enumerate(POSTULACION_ORDER)},
-            value=CatalogoEstados.nombre_estado,
+            value=func.lower(CatalogoEstados.nombre_estado),
             else_=999,
         )
-    if tipo_caso == "Proyecto":
+    if tipo_caso and tipo_caso.lower() == "proyecto":
         return case(
             {name: idx for idx, name in enumerate(PROYECTO_ORDER)},
-            value=CatalogoEstados.nombre_estado,
+            value=func.lower(CatalogoEstados.nombre_estado),
             else_=999,
         )
     return CatalogoEstados.id_estado.asc()
@@ -51,7 +53,7 @@ def _distribucion_por_estado(db: Session, tipo_caso: str, id_convocatoria: Optio
         )
         .select_from(Caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
-        .filter(CatalogoEstados.tipo_caso == tipo_caso)
+        .filter(func.lower(CatalogoEstados.tipo_caso) == tipo_caso.lower())
     )
 
     if id_convocatoria:
@@ -79,7 +81,6 @@ def _distribucion_por_estado(db: Session, tipo_caso: str, id_convocatoria: Optio
 
 
 def _distribucion_apoyos(db: Session, id_convocatoria: Optional[int]) -> List[ApoyoDistribucion]:
-    # Distribución por tipo_apoyo (lo que muestra tu gráfico: ValidaLab, Mentoría, etc)
     q = (
         db.query(
             Apoyo.tipo_apoyo.label("label"),
@@ -88,8 +89,9 @@ def _distribucion_apoyos(db: Session, id_convocatoria: Optional[int]) -> List[Ap
         .select_from(Apoyo)
         .join(Caso, Apoyo.id_caso == Caso.id_caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
-        # apoyos se asocian a casos tipo Proyecto (si en tu data también hay apoyos en Postulacion, sacá este filtro)
         .filter(CatalogoEstados.tipo_caso == "Proyecto")
+        # apoyos se asocian a casos tipo Proyecto (si en tu data también hay apoyos en Postulacion, sacá este filtro)
+        .filter(func.lower(CatalogoEstados.tipo_caso) == "proyecto")
     )
 
     if id_convocatoria:
@@ -113,54 +115,47 @@ def dashboard_metricas(
     # TOTALES (cards)
     # ============================================================
 
-    # total postulaciones = casos cuyo estado es tipo_caso "Postulacion"
     q_post = (
         db.query(func.count(Caso.id_caso))
         .select_from(Caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
-        .filter(CatalogoEstados.tipo_caso == "Postulacion")
+        .filter(func.lower(CatalogoEstados.tipo_caso) == "postulacion")
     )
     if id_convocatoria:
         q_post = q_post.filter(Caso.id_convocatoria == id_convocatoria)
     total_postulaciones = int(q_post.scalar() or 0)
 
-    # total proyectos = casos cuyo estado es tipo_caso "Proyecto"
     q_proy = (
         db.query(func.count(Caso.id_caso))
         .select_from(Caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
-        .filter(CatalogoEstados.tipo_caso == "Proyecto")
+        .filter(func.lower(CatalogoEstados.tipo_caso) == "proyecto")
     )
     if id_convocatoria:
         q_proy = q_proy.filter(Caso.id_convocatoria == id_convocatoria)
     total_proyectos = int(q_proy.scalar() or 0)
 
-    # total proyectos incubados = proyectos con estado nombre_estado == "Incubado"
     q_inc = (
         db.query(func.count(Caso.id_caso))
         .select_from(Caso)
         .join(CatalogoEstados, Caso.id_estado == CatalogoEstados.id_estado)
-        .filter(CatalogoEstados.tipo_caso == "Proyecto")
+        .filter(func.lower(CatalogoEstados.tipo_caso) == "proyecto")
         .filter(func.lower(CatalogoEstados.nombre_estado) == "incubado")
     )
     if id_convocatoria:
         q_inc = q_inc.filter(Caso.id_convocatoria == id_convocatoria)
     total_proyectos_incubados = int(q_inc.scalar() or 0)
 
-    # total tutores = usuarios con rol "Tutor"
-    # (si tu modelo es Usuario -> Rol, esto asume relación usuario.rol.nombre_rol)
     total_tutores = int(
         db.query(func.count(Usuario.id_usuario))
-        .join(Usuario.rol)
-        .filter(func.lower(Usuario.rol.nombre_rol) == "tutor")
+        .join(Rol, Usuario.id_rol == Rol.id_rol)
+        .filter(func.lower(Rol.nombre_rol) == "tutor")
         .scalar()
         or 0
     )
 
-    # total emprendedores = cantidad de emprendedores
     total_emprendedores = int(db.query(func.count(Emprendedor.id_emprendedor)).scalar() or 0)
 
-    # total apoyos = cantidad de apoyos
     q_ap = db.query(func.count(Apoyo.id_apoyo)).select_from(Apoyo).join(Caso, Apoyo.id_caso == Caso.id_caso)
     if id_convocatoria:
         q_ap = q_ap.filter(Caso.id_convocatoria == id_convocatoria)
@@ -175,9 +170,6 @@ def dashboard_metricas(
         total_apoyos=total_apoyos,
     )
 
-    # ============================================================
-    # GRAFICAS
-    # ============================================================
     proyectos_por_estado = _distribucion_por_estado(db, "Proyecto", id_convocatoria)
     postulaciones_por_estado = _distribucion_por_estado(db, "Postulacion", id_convocatoria)
     distribucion_apoyos = _distribucion_apoyos(db, id_convocatoria)

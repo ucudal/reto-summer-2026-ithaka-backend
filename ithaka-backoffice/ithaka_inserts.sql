@@ -64,6 +64,7 @@ INSERT INTO catalogo_estados (nombre_estado, tipo_caso) VALUES
 ('Cancelado', 'Proyecto');
 
 
+
 -- =====================================
 -- PROGRAMAS
 -- =====================================
