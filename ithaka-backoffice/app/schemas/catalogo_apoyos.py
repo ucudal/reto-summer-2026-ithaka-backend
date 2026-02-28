@@ -7,7 +7,7 @@ class CatalogoApoyosBase(BaseModel):
         ...,
         max_length=100,
         description="Nombre del apoyo",
-        examples=["Mentoría", "Financiamiento", "Networking"]
+        examples=["Networking Avanzado", "Financiamiento", "Acompañamiento Estratégico"]
     )
 
 

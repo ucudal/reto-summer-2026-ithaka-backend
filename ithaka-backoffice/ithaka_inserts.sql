@@ -37,13 +37,32 @@ INSERT INTO convocatoria (nombre, fecha_cierre) VALUES
 -- =====================================
 -- ESTADOS
 -- =====================================
+
+
+-- -------------------------
+-- POSTULACIONES
+-- -------------------------
 INSERT INTO catalogo_estados (nombre_estado, tipo_caso) VALUES 
-('Postulado', 'postulacion'),
-('En evaluacion', 'postulacion'),
-('En programa', 'proyecto'),
-('Activo', 'proyecto'),
-('Finalizado', 'proyecto'),
-('Rechazado', 'postulacion');
+('Postulado', 'Postulacion'),
+('En revisión', 'Postulacion'),
+('Evaluar', 'Postulacion'),
+('En pausa', 'Postulacion'),
+('Rechazado', 'Postulacion'),
+('Aprobado', 'Postulacion'),
+('En proyecto', 'Postulacion');
+
+-- -------------------------
+-- PROYECTOS
+-- -------------------------
+INSERT INTO catalogo_estados (nombre_estado, tipo_caso) VALUES
+('En Pausa', 'Proyecto'),
+('VIN', 'Proyecto'),
+('Semilla ANDE', 'Proyecto'),
+('Semilla ANII', 'Proyecto'),
+('Realizado', 'Proyecto'),
+('Egresado', 'Proyecto'),
+('Cancelado', 'Proyecto');
+
 
 
 -- =====================================
