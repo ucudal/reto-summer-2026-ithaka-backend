@@ -11,8 +11,11 @@ from app.models.usuario import Usuario
 from app.core.security import (
     verify_password,
     create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
     get_current_user
 )
+from app.schemas.auth import RefreshRequest, RefreshResponse
 
 router = APIRouter()
 
@@ -82,18 +85,19 @@ def login(
             detail="Usuario desactivado. Contacta al administrador."
         )
     
-    # 4. Crear token JWT con información del usuario
-    access_token = create_access_token(
-        data={
-            "sub": str(usuario.id_usuario),  # "sub" = subject (estándar JWT)
-            "email": usuario.email,
-            "rol": usuario.rol.nombre_rol if usuario.rol else None
-        }
-    )
-    
-    # 5. Devolver token y información del usuario
+    # 4. Crear access token y refresh token
+    payload = {
+        "sub": str(usuario.id_usuario),
+        "email": usuario.email,
+        "rol": usuario.rol.nombre_rol if usuario.rol else None
+    }
+    access_token = create_access_token(data=payload)
+    refresh_token = create_refresh_token(data=payload)
+
+    # 5. Devolver tokens y información del usuario
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
         "usuario": {
             "id": usuario.id_usuario,
@@ -175,3 +179,33 @@ def logout(current_user: Usuario = Depends(get_current_user)):
         "message": "Logout exitoso",
         "detail": "Elimina el token del cliente (localStorage/cookies)"
     }
+
+
+
+@router.post("/refresh", response_model=RefreshResponse)
+def refresh_token(body: RefreshRequest, db: Session = Depends(get_db)):
+    """
+    Renovar access token usando un refresh token válido.
+
+    Cliente envía: { "refresh_token": "..." }
+    Devuelve: { "access_token": "...", "token_type": "bearer" }
+    """
+    # Decodificar y validar refresh token
+    payload = decode_refresh_token(body.refresh_token)
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token inválido")
+
+    usuario = db.query(Usuario).filter(Usuario.id_usuario == int(user_id)).first()
+    if not usuario or not usuario.activo:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario inválido o inactivo")
+
+    new_access = create_access_token(
+        data={
+            "sub": str(usuario.id_usuario),
+            "email": usuario.email,
+            "rol": usuario.rol.nombre_rol if usuario.rol else None
+        }
+    )
+
+    return {"access_token": new_access, "token_type": "bearer"}
