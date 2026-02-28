@@ -16,6 +16,34 @@ from app.services.export_service import ExportService
 
 router = APIRouter()
 
+
+def _serializar_caso_para_response(caso: Caso) -> dict:
+    """Normaliza un caso al formato esperado por CasoResponse."""
+    estado = caso.estado
+    emprendedor = caso.emprendedor
+    convocatoria = caso.convocatoria
+    asignacion = caso.asignaciones[0] if caso.asignaciones else None
+    tutor = asignacion.usuario if asignacion else None
+
+    return {
+        "id_caso": caso.id_caso,
+        "nombre_caso": caso.nombre_caso,
+        "descripcion": caso.descripcion,
+        "fecha_creacion": caso.fecha_creacion,
+        "id_estado": caso.id_estado,
+        "nombre_estado": estado.nombre_estado if estado else None,
+        "tipo_caso": estado.tipo_caso if estado else None,
+        "id_emprendedor": caso.id_emprendedor,
+        "id_convocatoria": caso.id_convocatoria,
+        "emprendedor": f"{emprendedor.nombre} {emprendedor.apellido}" if emprendedor else None,
+        "convocatoria": convocatoria.nombre if convocatoria else None,
+        "datos_chatbot": caso.datos_chatbot,
+        "tutor_nombre": f"{tutor.nombre} {tutor.apellido}" if tutor else "Sin asignar",
+        "id_tutor": tutor.id_usuario if tutor else "Sin Asignar",
+        "asignacion": asignacion.id_asignacion if asignacion else "Sin Asignar"
+    }
+
+
 # =============================================================================
 # LISTAR TODOS
 # =============================================================================
@@ -73,30 +101,7 @@ def listar_casos(
     casos_transformados = []
 
     for caso in casos:
-        estado = caso.estado
-        emprendedor = caso.emprendedor
-        convocatoria = caso.convocatoria
-        asignacion = caso.asignaciones[0] if caso.asignaciones else None
-        tutor = asignacion.usuario if asignacion else None
-
-        custom_caso = {
-            "id_caso": caso.id_caso,
-            "nombre_caso": caso.nombre_caso,
-            "descripcion": caso.descripcion,
-            "fecha_creacion": caso.fecha_creacion,
-            "id_estado": caso.id_estado,
-            "nombre_estado": estado.nombre_estado if estado else None,
-            "tipo_caso": estado.tipo_caso if estado else None,
-            "id_emprendedor": caso.id_emprendedor,
-            "emprendedor": f"{emprendedor.nombre} {emprendedor.apellido}" if emprendedor else None,
-            "convocatoria": convocatoria.nombre if convocatoria else None,
-            "datos_chatbot": caso.datos_chatbot,
-            "tutor_nombre": f"{tutor.nombre} {tutor.apellido}" if tutor else "Sin asignar",
-            "id_tutor": tutor.id_usuario if tutor else "Sin Asignar",
-            "asignacion": asignacion.id_asignacion if asignacion else "Sin Asignar"
-        }
-
-        casos_transformados.append(custom_caso)
+        casos_transformados.append(_serializar_caso_para_response(caso))
 
     return casos_transformados
 
@@ -231,7 +236,7 @@ def crear_caso(
         raise HTTPException(status_code=500, detail="No existe el estado 'Postulado'.")
 
     nuevo_caso = Caso(
-        **caso_data.model_dump(exclude={"id_estado"}),
+        **caso_data.model_dump(),
         id_estado=estado_postulado.id_estado
     )
 
@@ -257,8 +262,14 @@ def crear_caso(
     )
 
     db.commit()
-    db.refresh(nuevo_caso)
-    return nuevo_caso
+    caso_creado = db.query(Caso).options(
+        joinedload(Caso.estado),
+        joinedload(Caso.emprendedor),
+        joinedload(Caso.convocatoria),
+        joinedload(Caso.asignaciones).joinedload(Asignacion.usuario)
+    ).filter(Caso.id_caso == nuevo_caso.id_caso).first()
+
+    return _serializar_caso_para_response(caso_creado)
 
 
 # =============================================================================
@@ -298,6 +309,22 @@ def actualizar_caso(
             valor_nuevo=str(update_data)
         )
 
-    db.commit()
-    db.refresh(caso)
-    return caso
+    try:
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        if "foreign key" in str(e.orig).lower():
+            raise HTTPException(
+                status_code=400,
+                detail="ID de emprendedor, convocatoria o estado inválido."
+            )
+        raise HTTPException(status_code=400, detail=str(e.orig))
+
+    caso_actualizado = db.query(Caso).options(
+        joinedload(Caso.estado),
+        joinedload(Caso.emprendedor),
+        joinedload(Caso.convocatoria),
+        joinedload(Caso.asignaciones).joinedload(Asignacion.usuario)
+    ).filter(Caso.id_caso == caso_id).first()
+
+    return _serializar_caso_para_response(caso_actualizado)

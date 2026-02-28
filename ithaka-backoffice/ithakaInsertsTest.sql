@@ -87,12 +87,44 @@ INSERT INTO caso (nombre_caso, descripcion, datos_chatbot, id_emprendedor, id_co
  4, 1, 1, '2026-02-10 17:00:00');
 
 -- =====================================
+-- CATALOGO_APOYO
+-- =====================================
+INSERT INTO catalogo_apoyo (nombre, descripcion, activo) VALUES
+('Ningún apoyo adicional (No UCU y no valor estratégico)', '', TRUE),
+('IPE Postulación VIN ANII/ANDE', '', TRUE),
+('IPE Postulación Semilla ANDE', '', TRUE),
+('IPE Emprendedores innovadores ANII', '', TRUE),
+('Otros Financiamientos', '', TRUE),
+('Programa de incubación general', '', TRUE),
+('Cursos de Uruguay Emprendedor', '', TRUE),
+('Valida Lab UCU', '', TRUE),
+('Mentoría / Tutoría', '', TRUE),
+('Ingreso al catálogo de emprendimientos', '', TRUE),
+('Acceso a laboratorios (Industrial, Alimentos, Química, electrónica, IoT)', '', TRUE),
+('Club de beneficios', '', TRUE),
+('Centro Ignis (Industrias creativas)', '', TRUE),
+('Comunidad UCU', '', TRUE),
+('Actividades de Networking', '', TRUE),
+('Tema para retos FIT', '', TRUE),
+('Becario/s', '', TRUE),
+('Sesión de IA (investigación mercado, estrategias, etc)', '', TRUE),
+('Otras', '', TRUE);
+
+-- =====================================
 -- APOYO
 -- =====================================
-INSERT INTO apoyo (tipo_apoyo, fecha_inicio, fecha_fin, id_caso, id_programa) VALUES
-('Ningún apoyo adicional (No UCU y no valor estratégico)', '2026-01-16', '2026-02-16', 1, 1),
-('IPE Postulación VIN ANII/ANDE', '2026-01-21', '2026-03-21', 2, 2),
-('IPE Postulación Semilla ANDE', '2026-02-02', '2026-04-02', 3, 3);
+INSERT INTO apoyo (id_catalogo_apoyo, fecha_inicio, fecha_fin, id_caso, id_programa) VALUES
+(1, '2026-01-16', '2026-02-16', 1, 1),
+(2, '2026-01-21', '2026-03-21', 2, 2),
+(3, '2026-02-02', '2026-04-02', 3, 3);
+
+-- =====================================
+-- APOYO_SOLICITADO
+-- =====================================
+INSERT INTO apoyo_solicitado (id_catalogo_apoyo, id_caso) VALUES
+(1, 1),
+(2, 2),
+(3, 3);
 
 -- =====================================
 -- ASIGNACION
@@ -106,11 +138,11 @@ INSERT INTO asignacion (id_usuario, id_caso, fecha_asignacion) VALUES
 -- =====================================
 -- NOTA
 -- =====================================
-INSERT INTO nota (contenido, fecha, id_usuario, id_caso) VALUES
-('Revisión inicial realizada', '2026-01-16 09:30:00', 2, 1),
-('Se requiere feedback del equipo', '2026-01-21 10:30:00', 3, 2),
-('Prototipo aprobado por mentor', '2026-02-02 11:30:00', 2, 3),
-('Idea de telemedicina evaluada', '2026-02-11 10:00:00', 3, 4);
+INSERT INTO nota (contenido, tipo_nota, fecha, id_usuario, id_caso) VALUES
+('Revisión inicial realizada', 'Interna', '2026-01-16 09:30:00', 2, 1),
+('Se requiere feedback del equipo', 'Interna', '2026-01-21 10:30:00', 3, 2),
+('Prototipo aprobado por mentor', 'Interna', '2026-02-02 11:30:00', 2, 3),
+('Idea de telemedicina evaluada', 'Interna', '2026-02-11 10:00:00', 3, 4);
 
 -- =====================================
 -- AUDITORIA

@@ -30,25 +30,55 @@ class CasoBase(BaseModel):
     
     id_emprendedor: int = Field(
         ...,
-        description="ID del emprendedor que presenta el caso"
+        gt=0,
+        description="ID del emprendedor que presenta el caso",
+        examples=[1]
     )
     
     id_convocatoria: Optional[int] = Field(
         None,
-        description="ID de la convocatoria asociada"
+        gt=0,
+        description="ID de la convocatoria asociada",
+        examples=[1]
     )
     
     id_estado: int = Field(
         ...,
-        description="ID del estado actual del caso"
+        gt=0,
+        description="ID del estado actual del caso",
+        examples=[1]
     )
 
 
-class CasoCreate(CasoBase):
+class CasoCreate(BaseModel):
     """Schema para crear caso (POST). El backend asigna estado Postulado automáticamente."""
-    id_estado: Optional[int] = Field(
+    nombre_caso: str = Field(
+        ...,
+        max_length=200,
+        description="Nombre del caso/proyecto",
+        examples=["EcoApp - Reciclaje Inteligente"]
+    )
+    descripcion: Optional[str] = Field(
         None,
-        description="Ignorado en creación: el backend siempre asigna el estado Postulado"
+        description="Descripción detallada del caso",
+        examples=["Aplicación móvil para facilitar el reciclaje urbano mediante gamificación"]
+    )
+    datos_chatbot: Optional[dict[str, Any]] = Field(
+        None,
+        description="Datos capturados por el chatbot en formato JSON",
+        examples=[{"sector": "Tecnología", "modelo": "B2C", "estado_producto": "MVP en desarrollo"}]
+    )
+    id_emprendedor: int = Field(
+        ...,
+        gt=0,
+        description="ID del emprendedor que presenta el caso",
+        examples=[1]
+    )
+    id_convocatoria: Optional[int] = Field(
+        None,
+        gt=0,
+        description="ID de la convocatoria asociada",
+        examples=[1]
     )
 
 
@@ -57,9 +87,9 @@ class CasoUpdate(BaseModel):
     nombre_caso: Optional[str] = Field(None, max_length=200)
     descripcion: Optional[str] = None
     datos_chatbot: Optional[dict[str, Any]] = None
-    id_emprendedor: Optional[int] = None
-    id_convocatoria: Optional[int] = None
-    id_estado: Optional[int] = None
+    id_emprendedor: Optional[int] = Field(None, gt=0, examples=[1])
+    id_convocatoria: Optional[int] = Field(None, gt=0, examples=[1])
+    id_estado: Optional[int] = Field(None, gt=0, examples=[2])
 
 
 class CasoResponse(CasoBase):
