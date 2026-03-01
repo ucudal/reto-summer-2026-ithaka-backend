@@ -154,18 +154,18 @@ def crear_apoyo_solicitado(
 ):
     """
     Crear un nuevo apoyo solicitado (Admin y Coordinador)
-    
+
     **Body ejemplo:**
     ```json
     {
-        "categoria_apoyo": "Mentoría técnica",
+        "id_catalogo_apoyo": 1,
         "id_caso": 1
     }
     ```
-    
+
     **Validaciones:**
     - El caso debe existir
-    - categoria_apoyo es obligatorio (1-150 caracteres)
+    - id_catalogo_apoyo es obligatorio
     """
     # Verificar que el caso existe
     caso = db.query(Caso).filter(Caso.id_caso == apoyo_data.id_caso).first()
@@ -174,13 +174,22 @@ def crear_apoyo_solicitado(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Caso {apoyo_data.id_caso} no encontrado"
         )
-    
+
+    # Verificar que el catálogo de apoyo existe
+    from app.models.catalogo_apoyo import CatalogoApoyo
+    catalogo_apoyo = db.query(CatalogoApoyo).filter(CatalogoApoyo.id_catalogo_apoyo == apoyo_data.id_catalogo_apoyo).first()
+    if not catalogo_apoyo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Catálogo de apoyo {apoyo_data.id_catalogo_apoyo} no encontrado"
+        )
+
     # Crear el apoyo solicitado
     nuevo_apoyo = ApoyoSolicitado(**apoyo_data.model_dump())
     db.add(nuevo_apoyo)
     db.commit()
     db.refresh(nuevo_apoyo)
-    
+
     return nuevo_apoyo
 
 
@@ -196,50 +205,57 @@ def actualizar_apoyo_solicitado(
 ):
     """
     Actualizar un apoyo solicitado existente (Tutor solo casos asignados)
-    
+
     **Body ejemplo:**
     ```json
     {
-        "categoria_apoyo": "Mentoría técnica avanzada"
+        "id_catalogo_apoyo": 2
     }
     ```
-    
+
     **Notas:**
-    - Solo se puede actualizar la categoría de apoyo
+    - Solo se puede actualizar el catálogo de apoyo
     - No se puede cambiar el caso asociado
     """
     # Buscar el apoyo solicitado
     apoyo = db.query(ApoyoSolicitado).filter(
         ApoyoSolicitado.id_apoyo_solicitado == apoyo_solicitado_id
     ).first()
-    
+
     if not apoyo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Apoyo solicitado {apoyo_solicitado_id} no encontrado"
         )
-    
+
     # Si es Tutor, verificar que el caso esté asignado
     if current_user.rol.nombre_rol == "Tutor":
         asignacion = db.query(Asignacion).filter(
             Asignacion.id_caso == apoyo.id_caso,
             Asignacion.id_usuario == current_user.id_usuario
         ).first()
-        
         if not asignacion:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes acceso a este apoyo"
             )
-    
+
     # Actualizar solo los campos enviados
     update_data = apoyo_data.model_dump(exclude_unset=True)
+    if "id_catalogo_apoyo" in update_data:
+        from app.models.catalogo_apoyo import CatalogoApoyo
+        catalogo_apoyo = db.query(CatalogoApoyo).filter(CatalogoApoyo.id_catalogo_apoyo == update_data["id_catalogo_apoyo"]).first()
+        if not catalogo_apoyo:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Catálogo de apoyo {update_data['id_catalogo_apoyo']} no encontrado"
+            )
     for field, value in update_data.items():
         setattr(apoyo, field, value)
-    
+
     db.commit()
     db.refresh(apoyo)
-    
+
     return apoyo
 
 

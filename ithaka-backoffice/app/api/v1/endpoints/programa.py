@@ -81,6 +81,15 @@ def eliminar_programa(
     if not programa:
         raise HTTPException(status_code=404, detail="Programa no encontrado")
 
+    # Validar si el programa está referenciado en apoyos
+    from app.models.apoyo import Apoyo
+    apoyos_relacionados = db.query(Apoyo).filter(Apoyo.id_programa == programa_id).count()
+    if apoyos_relacionados > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede eliminar el programa porque está asignado a uno o más apoyos."
+        )
+
     db.delete(programa)
     db.commit()
     return None

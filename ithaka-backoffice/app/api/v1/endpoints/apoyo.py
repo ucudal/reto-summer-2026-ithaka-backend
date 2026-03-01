@@ -176,7 +176,15 @@ def crear_apoyo(
     asignacion = db.query(Asignacion).filter(
         Asignacion.id_caso == apoyo_data.id_caso
     ).first()
-    
+
+    # Obtener nombre del catálogo de apoyo
+    nombre_catalogo_apoyo = None
+    if apoyo_data.id_catalogo_apoyo:
+        from app.models.catalogo_apoyo import CatalogoApoyo
+        catalogo_apoyo = db.query(CatalogoApoyo).filter(CatalogoApoyo.id_catalogo_apoyo == apoyo_data.id_catalogo_apoyo).first()
+        if catalogo_apoyo:
+            nombre_catalogo_apoyo = catalogo_apoyo.nombre
+
     if asignacion:
         registrar_auditoria_caso(
             db=db,
@@ -184,9 +192,9 @@ def crear_apoyo(
             id_usuario=asignacion.id_usuario,
             id_caso=apoyo_data.id_caso,
             valor_anterior=None,
-            valor_nuevo=f"{apoyo_data.tipo_apoyo} - {programa.nombre}"
+            valor_nuevo=f"{nombre_catalogo_apoyo or apoyo_data.id_catalogo_apoyo} - {programa.nombre}"
         )
-    
+
     db.commit()
     db.refresh(nuevo_apoyo)
     return nuevo_apoyo

@@ -9,12 +9,11 @@ from pydantic import BaseModel, Field
 
 class ApoyoSolicitadoBase(BaseModel):
     """Campos comunes de apoyo solicitado"""
-    categoria_apoyo: str = Field(
+    id_catalogo_apoyo: int = Field(
         ...,
-        min_length=1,
-        max_length=150,
-        description="Categoría de apoyo solicitada",
-        examples=["Mentoría técnica", "Financiamiento", "Asesoría legal"]
+        gt=0,
+        description="ID del catálogo de apoyo solicitado",
+        examples=[1, 2, 3]
     )
     id_caso: int = Field(
         ...,
@@ -26,16 +25,21 @@ class ApoyoSolicitadoBase(BaseModel):
 
 class ApoyoSolicitadoCreate(ApoyoSolicitadoBase):
     """Schema para crear apoyo solicitado"""
-    pass
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id_catalogo_apoyo": 1,
+                "id_caso": 1
+            }
+        }
 
 
 class ApoyoSolicitadoUpdate(BaseModel):
     """Schema para actualizar apoyo solicitado"""
-    categoria_apoyo: str | None = Field(
+    id_catalogo_apoyo: int | None = Field(
         None,
-        min_length=1,
-        max_length=150,
-        description="Categoría de apoyo solicitada"
+        gt=0,
+        description="ID del catálogo de apoyo solicitado"
     )
 
 

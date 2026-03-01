@@ -11,12 +11,9 @@ from typing import Optional
 
 class ApoyoBase(BaseModel):
     """Campos comunes de apoyo"""
-    tipo_apoyo: str = Field(
+    id_catalogo_apoyo: int = Field(
         ...,
-        min_length=1,
-        max_length=150,
-        description="Tipo de apoyo otorgado",
-        examples=["Mentoría", "Incubación inicial", "Financiamiento"]
+        description="ID del catálogo de apoyo"
     )
     
     fecha_inicio: Optional[date] = Field(
@@ -42,12 +39,21 @@ class ApoyoBase(BaseModel):
 
 class ApoyoCreate(ApoyoBase):
     """Schema para crear apoyo"""
-    pass
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id_catalogo_apoyo": 1,
+                "fecha_inicio": "2026-03-01",
+                "fecha_fin": "2026-04-01",
+                "id_caso": 2,
+                "id_programa": 3
+            }
+        }
 
 
 class ApoyoUpdate(BaseModel):
     """Schema para actualizar apoyo"""
-    tipo_apoyo: Optional[str] = Field(None, min_length=1, max_length=150)
+    id_catalogo_apoyo: Optional[int] = None
     fecha_inicio: Optional[date] = None
     fecha_fin: Optional[date] = None
     id_caso: Optional[int] = None

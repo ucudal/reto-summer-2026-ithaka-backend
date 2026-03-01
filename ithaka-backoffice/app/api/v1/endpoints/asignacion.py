@@ -212,9 +212,23 @@ def actualizar_asignacion(
             detail=f"Asignacion con ID {asignacion_id} no encontrado"
         )
     
-    for key, value in asignacion_data.model_dump(exclude_unset=True).items():
+    # Si se está cambiando el usuario asignado, validar que sea Tutor
+    update_data = asignacion_data.model_dump(exclude_unset=True)
+    if "id_usuario" in update_data:
+        usuario = db.query(Usuario).filter(Usuario.id_usuario == update_data["id_usuario"]).first()
+        if not usuario:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Usuario con ID {update_data['id_usuario']} no encontrado"
+            )
+        if usuario.rol.nombre_rol != "Tutor":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Solo se pueden asignar usuarios con rol Tutor. El usuario {usuario.nombre} tiene rol {usuario.rol.nombre_rol}"
+            )
+    for key, value in update_data.items():
         setattr(asignacion, key, value)
-    
+
     db.commit()
     db.refresh(asignacion)
     return asignacion

@@ -11,9 +11,9 @@ INSERT INTO rol (nombre_rol) VALUES
 -- =====================================
 -- Las contraseñas están indicadas en comentario al lado para pruebas
 INSERT INTO usuario (nombre, apellido, email, password_hash, activo, id_rol) VALUES
-('Lucía', 'Gómez', 'lucia.gomez@example.com', 'pbkdf2$sha256$10000$abc123$hashedpassword1', TRUE, 1), -- pass: lucia123
-('Diego', 'Martínez', 'diego.martinez@example.com', 'pbkdf2$sha256$10000$def456$hashedpassword2', TRUE, 2), -- pass: diego123
-('Carla', 'Fernández', 'carla.fernandez@example.com', 'pbkdf2$sha256$10000$ghi789$hashedpassword3', TRUE, 3); -- pass: carla123
+('Lucía', 'Gómez', 'lucia.gomez@example.com', '$2a$12$qsg1vlFd1UtmN08Tf/ANP.2087ER3mmWm5JUtf/KktfWdaW4mDC42', TRUE, 1), -- pass: lucia123
+('Diego', 'Martínez', 'diego.martinez@example.com', '$2a$12$p9pgfF2AjvP1Qn5IKdlCq.4xOFSPRNEdedomV8MZUBwBYxZeDr1Ra', TRUE, 2), -- pass: diego123
+('Carla', 'Fernández', 'carla.fernandez@example.com', '$2a$12$SvwUKNguOxj2Lu5lpHXkfe.bF0W./MBaQ0btKAUKYGHeQm4zA0VZ6', TRUE, 3); -- pass: carla123
 
 -- =====================================
 -- EMPRENDEDORES

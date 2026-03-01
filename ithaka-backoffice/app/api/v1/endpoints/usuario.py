@@ -195,11 +195,16 @@ def actualizar_usuario(
     if usuario_data.activo is not None:
         usuario.activo = usuario_data.activo
     if usuario_data.id_rol:
-        # Solo admin puede cambiar roles
+        # Solo admin puede cambiar roles, pero no puede cambiar su propio rol
         if current_user.rol.nombre_rol != "Admin":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Solo admin puede cambiar roles"
+            )
+        if current_user.id_usuario == usuario_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Un admin no puede cambiar su propio rol"
             )
         rol = db.query(Rol).filter(Rol.id_rol == usuario_data.id_rol).first()
         if not rol:

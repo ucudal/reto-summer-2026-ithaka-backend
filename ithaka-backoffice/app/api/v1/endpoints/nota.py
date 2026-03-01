@@ -129,9 +129,20 @@ def crear_nota(
             detail="El campo 'tipo_nota' es obligatorio."
         )
 
+
     nueva_nota = Nota(**nota_data.model_dump())
     db.add(nueva_nota)
-    db.flush()
+    try:
+        db.flush()
+    except Exception as e:
+        db.rollback()
+        # Manejo específico para claves foráneas
+        if hasattr(e, "orig") and "foreign key" in str(e.orig).lower():
+            raise HTTPException(
+                status_code=400,
+                detail="ID de usuario o caso inválido."
+            )
+        raise HTTPException(status_code=400, detail=str(e))
 
     registrar_auditoria_caso(
         db=db,
@@ -202,8 +213,17 @@ def actualizar_nota(
         valor_nuevo=valor_nuevo,
     )
 
-    db.commit()
-    db.refresh(nota)
+    try:
+        db.commit()
+        db.refresh(nota)
+    except Exception as e:
+        db.rollback()
+        if hasattr(e, "orig") and "foreign key" in str(e.orig).lower():
+            raise HTTPException(
+                status_code=400,
+                detail="ID de usuario o caso inválido."
+            )
+        raise HTTPException(status_code=400, detail=str(e))
 
     return nota
 

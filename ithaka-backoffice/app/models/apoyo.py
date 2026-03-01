@@ -21,7 +21,7 @@ class Apoyo(Base):
     __tablename__ = "apoyo"
 
     id_apoyo = Column(Integer, primary_key=True, index=True)
-    tipo_apoyo = Column(String(150), nullable=False)
+    id_catalogo_apoyo = Column(Integer, ForeignKey("catalogo_apoyo.id_catalogo_apoyo"), nullable=False)
     fecha_inicio = Column(Date, nullable=True)
     fecha_fin = Column(Date, nullable=True)
     id_caso = Column(Integer, ForeignKey("caso.id_caso"), nullable=False)

@@ -19,7 +19,6 @@ class ApoyoSolicitado(Base):
     
     # Columnas
     id_apoyo_solicitado = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    categoria_apoyo = Column(String(150), nullable=False)
-    
+    id_catalogo_apoyo = Column(Integer, ForeignKey("catalogo_apoyo.id_catalogo_apoyo"), nullable=False)
     # Foreign Keys
     id_caso = Column(Integer, ForeignKey("caso.id_caso"), nullable=False)
