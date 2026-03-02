@@ -84,7 +84,7 @@ El sistema Ithaka maneja 3 roles principales de usuario:
 | `GET /api/v1/notas` | ✅ | ✅ | ✅² | Listar notas (²solo de casos asignados) |
 | `GET /api/v1/notas/{id}` | ✅ | ✅ | ✅² | Ver nota (²si es de caso asignado) |
 | `GET /api/v1/notas/caso/{id_caso}` | ✅ | ✅ | ✅² | Ver notas de un caso (²si está asignado) |
-| `POST /api/v1/notas` | ✅ | ✅ | ✅² | Crear nota (²solo en casos asignados) |
+| `POST /api/v1/notas` | ✅ | ✅ | ✅ | Crear nota |
 | `PUT /api/v1/notas/{id}` | ✅ | ✅ | 🟡³ | Actualizar nota (³solo sus propias notas) |
 | `DELETE /api/v1/notas/{id}` | ✅ | ✅ | 🟡³ | Eliminar nota (³solo sus propias notas) |
 
