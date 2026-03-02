@@ -8,6 +8,7 @@ from app.schemas.auth import LoginRequest, LoginResponse, UsuarioActual
 
 from app.api.deps import get_db
 from app.models.usuario import Usuario
+from app.core.config import settings
 from app.core.security import (
     verify_password,
     create_access_token,
@@ -99,6 +100,7 @@ def login(
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
+        "ACCESS_TOKEN_EXPIRE_MINUTES": settings.ACCESS_TOKEN_EXPIRE_MINUTES,
         "usuario": {
             "id": usuario.id_usuario,
             "nombre": usuario.nombre,
