@@ -9,7 +9,7 @@ from app.models import Caso, CatalogoEstados, Convocatoria, Apoyo, Programa
 from app.models.usuario import Usuario
 from app.models.asignacion import Asignacion
 from app.models.emprendedor import Emprendedor
-from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse, CambiarEstadoCaso
+from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse
 from app.core.security import require_role
 from app.services.auditoria_service import registrar_auditoria_caso
 from app.services.export_service import ExportService
@@ -336,7 +336,7 @@ def actualizar_caso(
 @router.patch("/{caso_id}/estado", response_model=CasoResponse)
 def cambiar_estado_caso(
     caso_id: int,
-    estado_data: CambiarEstadoCaso,
+    nombre_estado: str,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
@@ -361,13 +361,13 @@ def cambiar_estado_caso(
 
     # Buscar el estado por nombre (case-insensitive)
     nuevo_estado = db.query(CatalogoEstados).filter(
-        func.lower(CatalogoEstados.nombre_estado) == estado_data.nombre_estado.lower()
+        func.lower(CatalogoEstados.nombre_estado) == nombre_estado.lower()
     ).first()
 
     if not nuevo_estado:
         raise HTTPException(
             status_code=404,
-            detail=f"Estado '{estado_data.nombre_estado}' no encontrado"
+            detail=f"Estado '{nombre_estado}' no encontrado"
         )
 
     # Guardar el estado anterior para auditoría
