@@ -212,8 +212,14 @@ def actualizar_asignacion(
             detail=f"Asignacion con ID {asignacion_id} no encontrado"
         )
     
-    # Si se está cambiando el usuario asignado, validar que sea Tutor
     update_data = asignacion_data.model_dump(exclude_unset=True)
+    if not update_data:
+        return asignacion
+
+    # Guardar valores anteriores para auditoría
+    valor_anterior = {key: getattr(asignacion, key) for key in update_data.keys()}
+
+    # Si se está cambiando el usuario asignado, validar que sea Tutor
     if "id_usuario" in update_data:
         usuario = db.query(Usuario).filter(Usuario.id_usuario == update_data["id_usuario"]).first()
         if not usuario:
@@ -226,8 +232,20 @@ def actualizar_asignacion(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Solo se pueden asignar usuarios con rol Tutor. El usuario {usuario.nombre} tiene rol {usuario.rol.nombre_rol}"
             )
+
     for key, value in update_data.items():
         setattr(asignacion, key, value)
+
+    valor_nuevo = {key: getattr(asignacion, key) for key in update_data.keys()}
+
+    registrar_auditoria_caso(
+        db=db,
+        accion="Actualización de asignación",
+        id_usuario=asignacion.id_usuario,
+        id_caso=asignacion.id_caso,
+        valor_anterior=valor_anterior,
+        valor_nuevo=valor_nuevo
+    )
 
     db.commit()
     db.refresh(asignacion)
