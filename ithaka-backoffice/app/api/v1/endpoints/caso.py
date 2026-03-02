@@ -9,7 +9,7 @@ from app.models import Caso, CatalogoEstados, Convocatoria, Apoyo, Programa
 from app.models.usuario import Usuario
 from app.models.asignacion import Asignacion
 from app.models.emprendedor import Emprendedor
-from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse
+from app.schemas.caso import CasoCreate, CasoUpdate, CasoResponse, CambiarEstadoCaso
 from app.core.security import require_role
 from app.services.auditoria_service import registrar_auditoria_caso
 from app.services.export_service import ExportService
@@ -320,6 +320,81 @@ def actualizar_caso(
             )
         raise HTTPException(status_code=400, detail=str(e.orig))
 
+    caso_actualizado = db.query(Caso).options(
+        joinedload(Caso.estado),
+        joinedload(Caso.emprendedor),
+        joinedload(Caso.convocatoria),
+        joinedload(Caso.asignaciones).joinedload(Asignacion.usuario)
+    ).filter(Caso.id_caso == caso_id).first()
+
+    return _serializar_caso_para_response(caso_actualizado)
+
+
+# =============================================================================
+# CAMBIAR ESTADO
+# =============================================================================
+@router.patch("/{caso_id}/estado", response_model=CasoResponse)
+def cambiar_estado_caso(
+    caso_id: int,
+    estado_data: CambiarEstadoCaso,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
+):
+    """
+    Cambia el estado de un caso usando el nombre del estado.
+    
+    - **caso_id**: ID del caso a actualizar
+    - **nombre_estado**: Nombre del estado (ej: "Aprobado", "Rechazado", "En revisión")
+    """
+    # Buscar el caso
+    caso = db.query(Caso).options(
+        joinedload(Caso.asignaciones)
+    ).filter(Caso.id_caso == caso_id).first()
+
+    if not caso:
+        raise HTTPException(status_code=404, detail="Caso no encontrado")
+
+    # Verificar permisos de Tutor
+    if current_user.rol.nombre_rol == "Tutor":
+        if not any(a.id_usuario == current_user.id_usuario for a in caso.asignaciones):
+            raise HTTPException(status_code=403, detail="No tienes acceso a este caso")
+
+    # Buscar el estado por nombre (case-insensitive)
+    nuevo_estado = db.query(CatalogoEstados).filter(
+        func.lower(CatalogoEstados.nombre_estado) == estado_data.nombre_estado.lower()
+    ).first()
+
+    if not nuevo_estado:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Estado '{estado_data.nombre_estado}' no encontrado"
+        )
+
+    # Guardar el estado anterior para auditoría
+    estado_anterior = db.query(CatalogoEstados).filter(
+        CatalogoEstados.id_estado == caso.id_estado
+    ).first()
+
+    # Actualizar el estado
+    caso.id_estado = nuevo_estado.id_estado
+
+    # Registrar auditoría
+    registrar_auditoria_caso(
+        db=db,
+        accion="Estado actualizado",
+        id_usuario=current_user.id_usuario,
+        id_caso=caso_id,
+        valor_anterior=estado_anterior.nombre_estado if estado_anterior else "N/A",
+        valor_nuevo=nuevo_estado.nombre_estado
+    )
+
+    try:
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e.orig))
+
+    # Obtener el caso actualizado con todas las relaciones
     caso_actualizado = db.query(Caso).options(
         joinedload(Caso.estado),
         joinedload(Caso.emprendedor),
