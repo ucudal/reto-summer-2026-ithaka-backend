@@ -92,6 +92,16 @@ class CasoUpdate(BaseModel):
     id_estado: Optional[int] = Field(None, gt=0, examples=[2])
 
 
+class CambiarEstadoCaso(BaseModel):
+    """Schema para cambiar el estado de un caso usando el nombre del estado"""
+    nombre_estado: str = Field(
+        ...,
+        max_length=100,
+        description="Nombre del estado al que se quiere cambiar el caso",
+        examples=["Aprobado", "Rechazado", "En revisión"]
+    )
+
+
 class CasoResponse(CasoBase):
     """Schema para respuesta (GET)"""
     id_caso: int = Field(..., description="ID único del caso")
