@@ -18,6 +18,7 @@ class LoginResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
     usuario: dict
 
 
