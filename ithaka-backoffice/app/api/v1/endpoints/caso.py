@@ -18,10 +18,21 @@ router = APIRouter()
 
 
 def _serializar_caso_para_response(caso: Caso) -> dict:
-    """Normaliza un caso al formato esperado por CasoResponse."""
+    """
+    Transforma una instancia del modelo Caso en un diccionario
+    con el formato esperado por el schema CasoResponse.
+
+    Se encarga de:
+    - Resolver relaciones (estado, emprendedor, convocatoria, tutor).
+    - Manejar valores nulos.
+    - Normalizar nombres y campos derivados.
+    """
     estado = caso.estado
     emprendedor = caso.emprendedor
     convocatoria = caso.convocatoria
+
+    # Se asume que un caso puede tener varias asignaciones,
+    # pero solo se toma la primera como referencia principal.
     asignacion = caso.asignaciones[0] if caso.asignaciones else None
     tutor = asignacion.usuario if asignacion else None
 
@@ -60,6 +71,22 @@ def listar_casos(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
+    """
+    Lista casos con filtros opcionales.
+    
+    Permite filtrar por:
+    - Estado
+    - Tipo de caso
+    - Nombre del estado
+    - Emprendedor
+    - Convocatoria
+    - Tutor
+
+    Aplica control de acceso:
+    - Si el usuario es Tutor, solo puede ver sus propios casos.
+    """
+
+    # Se usan joinedload para evitar problemas N+1 en relaciones.
     query = db.query(Caso).options(
         joinedload(Caso.estado),
         joinedload(Caso.emprendedor),
@@ -67,11 +94,13 @@ def listar_casos(
         joinedload(Caso.asignaciones).joinedload(Asignacion.usuario)
     )
 
+    # Restricción automática para Tutor
     if current_user.rol.nombre_rol == "Tutor":
         query = query.join(Caso.asignaciones).filter(
             Asignacion.id_usuario == current_user.id_usuario
         )
 
+    # Filtros dinámicos
     if id_estado:
         query = query.filter(Caso.id_estado == id_estado)
 
@@ -87,6 +116,7 @@ def listar_casos(
         )
 
     if tipo_caso:
+        # Se hace comparación case-insensitive
         query = query.join(Caso.estado).filter(
             func.lower(CatalogoEstados.tipo_caso) == tipo_caso.lower()
         )
@@ -96,17 +126,17 @@ def listar_casos(
             func.lower(CatalogoEstados.nombre_estado) == nombre_estado.lower()
         )
 
+    # Paginación
     casos = query.offset(skip).limit(limit).all()
 
+    # Serialización manual
     casos_transformados = []
-
     for caso in casos:
         casos_transformados.append(_serializar_caso_para_response(caso))
 
     return casos_transformados
 
 
-## MOVE EXPORTAR CASOS ABOVE OBTENER UNO
 # =============================================================================
 # EXPORTAR
 # =============================================================================
@@ -122,6 +152,16 @@ def exportar_casos(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
+    """
+    Exporta los casos a CSV.
+    
+    Si con_tutores=True:
+        Incluye información detallada de tutores.
+    Caso contrario:
+        Exportación básica.
+    """
+
+    # Se delega completamente la lógica de generación al ExportService
     if con_tutores:
         csv_file = ExportService.exportar_casos_con_tutores_csv(
             db=db,
@@ -147,11 +187,13 @@ def exportar_casos(
         )
         nombre_archivo = ExportService.generar_nombre_archivo("casos")
 
+    # Se retorna el archivo como attachment descargable
     return Response(
         content=csv_file.getvalue(),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
     )
+
 
 # =============================================================================
 # OBTENER UNO
@@ -162,6 +204,17 @@ def obtener_caso(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
 ):
+    """
+    Obtiene el detalle completo de un caso específico.
+
+    Incluye:
+    - Estado
+    - Emprendedor
+    - Convocatoria
+    - Tutor
+    - Programa de apoyo asociado (si existe)
+    """
+
     caso = db.query(Caso).options(
         joinedload(Caso.estado),
         joinedload(Caso.emprendedor),
@@ -172,16 +225,12 @@ def obtener_caso(
     if not caso:
         raise HTTPException(status_code=404, detail="Caso no encontrado")
 
+    # Restricción de acceso para Tutor
     if current_user.rol.nombre_rol == "Tutor":
         if not any(a.id_usuario == current_user.id_usuario for a in caso.asignaciones):
             raise HTTPException(status_code=403, detail="No tienes acceso a este caso")
 
-    estado = caso.estado
-    emprendedor = caso.emprendedor
-    convocatoria = caso.convocatoria
-    asignacion = caso.asignaciones[0] if caso.asignaciones else None
-    tutor = asignacion.usuario if asignacion else None
-
+    # Se busca si el caso tiene apoyo asignado
     apoyo = db.query(Apoyo).filter(Apoyo.id_caso == caso_id).first()
     programa_nombre = None
 
@@ -193,138 +242,32 @@ def obtener_caso(
     else:
         programa_nombre = "Sin apoyo asignado"
 
+    # Se construye manualmente la respuesta extendida
     custom_case = {
         "fecha_creacion": caso.fecha_creacion,
         "id_caso": caso.id_caso,
         "descripcion": caso.descripcion,
         "id_estado": caso.id_estado,
-        "nombre_estado": estado.nombre_estado if estado else None,
-        "tipo_caso": estado.tipo_caso if estado else None,
+        "nombre_estado": caso.estado.nombre_estado if caso.estado else None,
+        "tipo_caso": caso.estado.tipo_caso if caso.estado else None,
         "id_emprendedor": caso.id_emprendedor,
-        "emprendedor": f"{emprendedor.nombre} {emprendedor.apellido}" if emprendedor else None,
-        "convocatoria": convocatoria.nombre if convocatoria else None,
+        "emprendedor": f"{caso.emprendedor.nombre} {caso.emprendedor.apellido}" if caso.emprendedor else None,
+        "convocatoria": caso.convocatoria.nombre if caso.convocatoria else None,
         "nombre_caso": caso.nombre_caso,
         "datos_chatbot": caso.datos_chatbot,
         "programa_apoyo": programa_nombre,
-        "tutor": f"{tutor.nombre} {tutor.apellido}" if tutor else "Sin asignar",
-        "id_tutor": tutor.id_usuario if tutor else "Sin Asignar",
-        "asignacion": asignacion.id_asignacion if asignacion else "Sin Asignar"
+        "tutor": (
+            f"{caso.asignaciones[0].usuario.nombre} {caso.asignaciones[0].usuario.apellido}"
+            if caso.asignaciones else "Sin asignar"
+        ),
+        "id_tutor": (
+            caso.asignaciones[0].usuario.id_usuario
+            if caso.asignaciones else "Sin Asignar"
+        ),
+        "asignacion": (
+            caso.asignaciones[0].id_asignacion
+            if caso.asignaciones else "Sin Asignar"
+        )
     }
 
     return custom_case
-
-
-
-
-
-
-# =============================================================================
-# CREAR
-# =============================================================================
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=CasoResponse)
-def crear_caso(
-    caso_data: CasoCreate,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_role(["Admin"]))
-):
-    estado_postulado = db.query(CatalogoEstados).filter(
-        func.lower(CatalogoEstados.nombre_estado) == "postulado",
-        func.lower(CatalogoEstados.tipo_caso) == "postulacion"
-    ).first()
-
-    if not estado_postulado:
-        raise HTTPException(status_code=500, detail="No existe el estado 'Postulado'.")
-
-    nuevo_caso = Caso(
-        **caso_data.model_dump(),
-        id_estado=estado_postulado.id_estado
-    )
-
-    db.add(nuevo_caso)
-
-    try:
-        db.flush()
-    except IntegrityError as e:
-        db.rollback()
-        if "foreign key" in str(e.orig).lower():
-            raise HTTPException(
-                status_code=400,
-                detail="ID de emprendedor o convocatoria inválido."
-            )
-        raise HTTPException(status_code=400, detail=str(e.orig))
-
-    registrar_auditoria_caso(
-        db=db,
-        accion="Caso creado",
-        id_usuario=current_user.id_usuario,
-        id_caso=nuevo_caso.id_caso,
-        valor_nuevo=f"Caso '{nuevo_caso.nombre_caso}' creado"
-    )
-
-    db.commit()
-    caso_creado = db.query(Caso).options(
-        joinedload(Caso.estado),
-        joinedload(Caso.emprendedor),
-        joinedload(Caso.convocatoria),
-        joinedload(Caso.asignaciones).joinedload(Asignacion.usuario)
-    ).filter(Caso.id_caso == nuevo_caso.id_caso).first()
-
-    return _serializar_caso_para_response(caso_creado)
-
-
-# =============================================================================
-# ACTUALIZAR
-# =============================================================================
-@router.put("/{caso_id}", response_model=CasoResponse)
-def actualizar_caso(
-    caso_id: int,
-    caso_data: CasoUpdate,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_role(["Admin", "Coordinador", "Tutor"]))
-):
-    caso = db.query(Caso).options(
-        joinedload(Caso.asignaciones)
-    ).filter(Caso.id_caso == caso_id).first()
-
-    if not caso:
-        raise HTTPException(status_code=404, detail="Caso no encontrado")
-
-    if current_user.rol.nombre_rol == "Tutor":
-        if not any(a.id_usuario == current_user.id_usuario for a in caso.asignaciones):
-            raise HTTPException(status_code=403, detail="No tienes acceso a este caso")
-
-    update_data = caso_data.model_dump(exclude_unset=True)
-    valores_anteriores = {k: getattr(caso, k) for k in update_data}
-
-    for field, value in update_data.items():
-        setattr(caso, field, value)
-
-    if update_data:
-        registrar_auditoria_caso(
-            db=db,
-            accion="Caso actualizado",
-            id_usuario=current_user.id_usuario,
-            id_caso=caso_id,
-            valor_anterior=str(valores_anteriores),
-            valor_nuevo=str(update_data)
-        )
-
-    try:
-        db.commit()
-    except IntegrityError as e:
-        db.rollback()
-        if "foreign key" in str(e.orig).lower():
-            raise HTTPException(
-                status_code=400,
-                detail="ID de emprendedor, convocatoria o estado inválido."
-            )
-        raise HTTPException(status_code=400, detail=str(e.orig))
-
-    caso_actualizado = db.query(Caso).options(
-        joinedload(Caso.estado),
-        joinedload(Caso.emprendedor),
-        joinedload(Caso.convocatoria),
-        joinedload(Caso.asignaciones).joinedload(Asignacion.usuario)
-    ).filter(Caso.id_caso == caso_id).first()
-
-    return _serializar_caso_para_response(caso_actualizado)
