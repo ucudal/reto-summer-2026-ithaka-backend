@@ -104,6 +104,7 @@ Para cada tabla se indica: columnas, propósito, relaciones, restricciones y not
   - `password_hash` TEXT NOT NULL
   - `activo` BOOLEAN NOT NULL DEFAULT TRUE
   - `id_rol` INTEGER NOT NULL FK -> `rol.id_rol`
+- Propósito: Almacenar cuentas de acceso del personal que administra o interactúa con la plataforma (credenciales, estado y rol).
 - Relaciones:
   - `rol` : relationship hacia `Rol` (many-to-one). Back-populates: `usuarios` en `Rol`.
   - Puede relacionarse a `Asignacion`, `Nota`, `Auditoria` (referencias en otros modelos y endpoints).
@@ -120,24 +121,28 @@ Para cada tabla se indica: columnas, propósito, relaciones, restricciones y not
   - `usuarios` (one-to-many)
 - Observaciones:
   - Los endpoints de `rol` validan unicidad y no permiten eliminar roles con usuarios asociados.
+- Propósito: Definir niveles de permiso y agrupar permisos por tipo para asignarlos a `usuario`.
 
 5.3 `emprendedor` (app/models/emprendedor.py)
 - Tabla: `emprendedor`
 - Columnas: `id_emprendedor`, `nombre`, `apellido`, `email`, `telefono`, `documento_identidad`, `pais_residencia`, `ciudad_residencia`, `campus_ucu`, `relacion_ucu`, `facultad_ucu`, `canal_llegada`, `motivacion`, `fecha_registro`.
 - Relaciones: `casos` (un emprendedor puede tener muchos casos).
 - Observaciones: Los endpoints no eliminan emprendedores por integridad.
+- Propósito: Guardar la información de las personas emprendedoras que postulan o participan en proyectos, para vincularla con sus `casos`.
 
 5.4 `convocatoria` (app/models/convocatoria.py)
 - Tabla: `convocatoria`
 - Columnas: `id_convocatoria`, `nombre`, `fecha_cierre`.
 - Relaciones: `casos` back_populates con `Caso.convocatoria`.
 - Observaciones: Eliminación física está deshabilitada por integridad (endpoints comentados).
+- Propósito: Representar una convocatoria o llamada a postulación, para agrupar casos por periodo/edición.
 
 5.5 `catalogo_estados` (app/models/catalogo_estados.py)
 - Tabla: `catalogo_estados`
 - Columnas: `id_estado`, `nombre_estado`, `tipo_caso`.
 - Restricciones: `CheckConstraint(lower(tipo_caso) IN ('postulacion','proyecto'))`.
 - Observaciones: El modelo valida y normaliza `nombre_estado` y `tipo_caso` a minúsculas con `@validates`.
+- Propósito: Mantener el catálogo de estados posibles para clasificar y controlar el flujo de los `caso` según su `tipo_caso`.
 
 5.6 `caso` (app/models/caso.py)
 - Tabla: `caso`
@@ -158,16 +163,19 @@ Para cada tabla se indica: columnas, propósito, relaciones, restricciones y not
 - Observaciones:
   - `datos_chatbot` puede contener estructura libre JSON. En PostgreSQL conviene JSONB y consultas del tipo `datos_chatbot->>'campo'`.
   - Muchos endpoints devuelven una vista serializada del caso con campos calculados (nombre_estado, tipo_caso, tutor_nombre, etc.).
+- Propósito: Entidad principal que representa una postulación o proyecto de un emprendedor; centraliza estado, datos del chatbot, convocatoria y relaciones con asignaciones, apoyos y notas.
 
 5.7 `catalogo_apoyo` (app/models/catalogo_apoyo.py)
 - Tabla: `catalogo_apoyo`
 - Columnas: `id_catalogo_apoyo`, `nombre` UNIQUE NOT NULL, `descripcion`, `activo` BOOLEAN.
 - Propósito: Tipos/categorías de apoyo.
 
+
 5.8 `apoyo` (app/models/apoyo.py)
 - Tabla: `apoyo`
 - Columnas: `id_apoyo`, `id_catalogo_apoyo` FK, `fecha_inicio`, `fecha_fin`, `id_caso` FK NOT NULL, `id_programa` FK NOT NULL.
 - Observaciones: Representa apoyos efectivamente otorgados a un caso.
+- Propósito: Registrar intervenciones/beneficios concretos asignados a un caso (fechas, programa y tipo de apoyo), para seguimiento y reporting.
 
 5.9 `apoyo_solicitado` (app/models/apoyo_solicitado.py)
 - Tabla: `apoyo_solicitado`
@@ -178,12 +186,14 @@ Para cada tabla se indica: columnas, propósito, relaciones, restricciones y not
 - Tabla: `programa`
 - Columnas: `id_programa`, `nombre`, `activo`.
 - Relaciones: `apoyos` (backref desde `Apoyo`).
+- Propósito: Modelar las líneas o programas institucionales que financian o administran apoyos a los casos.
 
 5.11 `asignacion` (app/models/asignacion.py)
 - Tabla: `asignacion`
 - Columnas: `id_asignacion`, `fecha_asignacion` TIMESTAMP DEFAULT now(), `id_usuario` FK NOT NULL, `id_caso` FK NOT NULL.
 - Relaciones: `usuario` (backref `asignaciones`), `caso` back_populates `asignaciones`.
 - Observaciones: Un tutor puede estar asignado a múltiples casos; una asignación es única por par (id_usuario, id_caso) validada en lógica del endpoint.
+- Propósito: Registrar qué usuario (tutor) está responsable de un caso en un momento dado, para control de responsabilidades y notificaciones.
 
 5.12 `nota` (app/models/nota.py)
 - Tabla: `nota`
@@ -194,6 +204,7 @@ Para cada tabla se indica: columnas, propósito, relaciones, restricciones y not
 - Tabla: `auditoria`
 - Columnas: `id_auditoria`, `timestamp`, `accion`, `valor_anterior`, `valor_nuevo`, `id_usuario` FK NOT NULL, `id_caso` FK NULLABLE.
 - Observaciones: Registro de trazabilidad de acciones. Los helpers en `app/services/auditoria_service.py` serializan valores (JSON/text) y añaden el registro a la sesión, pero NO hacen commit.
+- Propósito: Mantener un historial inmutable de cambios y acciones relevantes del sistema para auditoría, investigación y trazabilidad.
 
 
 6. Endpoints: descripción detallada por recurso
