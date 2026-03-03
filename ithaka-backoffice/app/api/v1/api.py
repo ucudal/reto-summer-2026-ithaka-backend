@@ -50,13 +50,13 @@ api_router.include_router(
  # Catálogo de Apoyos
 api_router.include_router(
     catalogo_apoyos.router,
-    prefix="/catalogo_apoyos",
+    prefix="/catalogo-apoyos",
     tags=["catalogo_apoyos"]
 )
  # Catálogo de Estados
 api_router.include_router(
     catalogo_estados.router,
-    prefix="/estados",
+    prefix="/catalogo-estados",
     tags=["estados"]
 )
 
