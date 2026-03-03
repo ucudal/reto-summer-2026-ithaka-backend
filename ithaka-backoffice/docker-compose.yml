@@ -1,21 +1,21 @@
 services:
   # Base de datos PostgreSQL LOCAL (comentado para usar BD remota)
-  # db:
-  #   image: postgres:15
-  #   container_name: ithaka_postgres
-  #   environment:
-  #     POSTGRES_USER: ${POSTGRES_USER}
-  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  #     POSTGRES_DB: ${POSTGRES_DB}
-  #   ports:
-  #     - "${POSTGRES_PORT}:5432"
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  db:
+    image: postgres:15
+    container_name: ithaka_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # API de FastAPI
   api:
@@ -26,17 +26,13 @@ services:
     environment:
       - ENVIRONMENT=development
       # Base de datos REMOTA
-      - POSTGRES_USER=ithaka
-      - POSTGRES_PASSWORD=1th4k42026
-      - POSTGRES_SERVER=labacademicoucu.myddns.me
-      - POSTGRES_PORT=50001
-      - POSTGRES_DB=ithaka_db
+
       # Configuración local (comentada)
-      # - POSTGRES_USER=${POSTGRES_USER}
-      # - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      # - POSTGRES_SERVER=db
-      # - POSTGRES_PORT=5432
-      # - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
@@ -44,10 +40,10 @@ services:
       - .:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     # Comentado depends_on porque ya no depende de DB local
-    # depends_on:
-    #   db:
-    #     condition: service_healthy
+    depends_on:
+      db:
+        condition: service_healthy
 
 # Volumen local (comentado para usar BD remota)
-# volumes:
-#   postgres_data:
+volumes:
+  postgres_data:

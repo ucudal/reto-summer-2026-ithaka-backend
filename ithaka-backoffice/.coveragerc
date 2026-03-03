@@ -1,0 +1,30 @@
+# Configuración de Coverage
+[run]
+source = app
+omit = 
+    */tests/*
+    */conftest.py
+    */__init__.py
+    */main.py
+    */__pycache__/*
+    */venv/*
+    */env/*
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+
+# Líneas a excluir del coverage
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @overload
+
+[html]
+directory = htmlcov

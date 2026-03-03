@@ -295,6 +295,29 @@ def actualizar_caso(
     update_data = caso_data.model_dump(exclude_unset=True)
     valores_anteriores = {k: getattr(caso, k) for k in update_data}
 
+    # Lógica especial: Si se actualiza a estado "en proyecto", convertir a proyecto con "en pausa"
+    if 'id_estado' in update_data:
+        nuevo_estado = db.query(CatalogoEstados).filter(
+            CatalogoEstados.id_estado == update_data['id_estado']
+        ).first()
+        
+        if nuevo_estado and nuevo_estado.nombre_estado.lower() == "en proyecto":
+            estado_en_pausa = db.query(CatalogoEstados).filter(
+                func.lower(CatalogoEstados.nombre_estado) == "en pausa",
+                func.lower(CatalogoEstados.tipo_caso) == "proyecto"
+            ).first()
+            
+            if estado_en_pausa:
+                update_data['id_estado'] = estado_en_pausa.id_estado
+                registrar_auditoria_caso(
+                    db=db,
+                    accion="Conversión automática a proyecto",
+                    id_usuario=current_user.id_usuario,
+                    id_caso=caso_id,
+                    valor_anterior=f"Estado anterior: {valores_anteriores.get('id_estado', 'N/A')}",
+                    valor_nuevo=f"Proyecto en pausa (id: {estado_en_pausa.id_estado})"
+                )
+
     for field, value in update_data.items():
         setattr(caso, field, value)
 
@@ -373,6 +396,24 @@ def cambiar_estado_caso(
     estado_anterior = db.query(CatalogoEstados).filter(
         CatalogoEstados.id_estado == caso.id_estado
     ).first()
+
+    # Lógica especial: Si se cambia a "en proyecto", convertir a proyecto con estado "en pausa"
+    if nuevo_estado.nombre_estado.lower() == "en proyecto":
+        estado_en_pausa = db.query(CatalogoEstados).filter(
+            func.lower(CatalogoEstados.nombre_estado) == "en pausa",
+            func.lower(CatalogoEstados.tipo_caso) == "proyecto"
+        ).first()
+        
+        if estado_en_pausa:
+            nuevo_estado = estado_en_pausa
+            registrar_auditoria_caso(
+                db=db,
+                accion="Conversión automática a proyecto",
+                id_usuario=current_user.id_usuario,
+                id_caso=caso_id,
+                valor_anterior=f"Postulación: {estado_anterior.nombre_estado if estado_anterior else 'N/A'}",
+                valor_nuevo=f"Proyecto: {nuevo_estado.nombre_estado}"
+            )
 
     # Actualizar el estado
     caso.id_estado = nuevo_estado.id_estado
