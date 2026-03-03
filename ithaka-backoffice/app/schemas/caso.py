@@ -4,7 +4,7 @@ Schemas CASO
 Define casos de emprendedores (postulaciones/proyectos).
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional, Any
 
@@ -13,6 +13,7 @@ class CasoBase(BaseModel):
     """Campos comunes de caso"""
     nombre_caso: str = Field(
         ...,
+        min_length=1,
         max_length=200,
         description="Nombre del caso/proyecto",
         examples=["App de delivery sustentable"]
@@ -54,6 +55,7 @@ class CasoCreate(BaseModel):
     """Schema para crear caso (POST). El backend asigna estado Postulado automáticamente."""
     nombre_caso: str = Field(
         ...,
+        min_length=1,
         max_length=200,
         description="Nombre del caso/proyecto",
         examples=["EcoApp - Reciclaje Inteligente"]
@@ -80,6 +82,14 @@ class CasoCreate(BaseModel):
         description="ID de la convocatoria asociada",
         examples=[1]
     )
+    
+    @field_validator('nombre_caso')
+    @classmethod
+    def validate_nombre_not_blank(cls, v: str) -> str:
+        """Validar que nombre_caso no sea solo espacios en blanco"""
+        if not v or not v.strip():
+            raise ValueError('nombre_caso no puede estar vacío o contener solo espacios')
+        return v.strip()
 
 
 class CasoUpdate(BaseModel):

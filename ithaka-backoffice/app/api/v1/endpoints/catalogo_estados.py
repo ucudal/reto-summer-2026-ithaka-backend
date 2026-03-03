@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import get_db
 from app.models.catalogo_estados import CatalogoEstados
@@ -124,7 +125,14 @@ def eliminar_estado(
             detail=f"Estado con ID {estado_id} no encontrado"
         )
     
-    db.delete(estado)
-    db.commit()
+    try:
+        db.delete(estado)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se puede eliminar el estado porque está asociado a casos existentes"
+        )
     
     return None
