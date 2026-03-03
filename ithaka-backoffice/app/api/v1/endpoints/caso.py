@@ -217,9 +217,8 @@ def obtener_caso(
 
 
 
-
 # =============================================================================
-# CREAR
+# CREARCION DE CASOS
 # =============================================================================
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=CasoResponse)
 def crear_caso(
@@ -249,7 +248,7 @@ def crear_caso(
         if "foreign key" in str(e.orig).lower():
             raise HTTPException(
                 status_code=400,
-                detail="ID de emprendedor o convocatoria inválido."
+                detail="ID de emprendedor o convocatoria invÃ¡lido."
             )
         raise HTTPException(status_code=400, detail=str(e.orig))
 
@@ -316,7 +315,7 @@ def actualizar_caso(
         if "foreign key" in str(e.orig).lower():
             raise HTTPException(
                 status_code=400,
-                detail="ID de emprendedor, convocatoria o estado inválido."
+                detail="ID de emprendedor, convocatoria o estado invÃ¡lido."
             )
         raise HTTPException(status_code=400, detail=str(e.orig))
 
